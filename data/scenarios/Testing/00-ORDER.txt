@@ -49,3 +49,4 @@ Achievements
 1430-built-robot-ownership.yaml
 1536-custom-unwalkable-entities.yaml
 1535-ping
+1592-shared-template-robot-say-logs.yaml

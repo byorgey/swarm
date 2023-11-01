@@ -1,0 +1,30 @@
+version: 1
+name: Logs from same-template robots
+description: |
+  Logs from different robots generated from the same template.
+robots:
+  - name: base
+    devices:
+      - logger
+      - hearing aid
+  - name: saybot
+    system: true
+    display:
+      invisible: false
+      attr: blue
+    program: |
+      loc <- whereami;
+      wait $ snd loc;
+      say "Hello";
+world:
+  palette:
+    '.': [grass]
+    'B': [grass, null, base]
+    's': [grass, null, saybot]
+    
+  upperleft: [0, 4]
+  map: |
+    ....s
+    ...ss
+    B...s
+    
