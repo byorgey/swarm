@@ -7,7 +7,7 @@
 module Swarm.Language.Parser.Term where
 
 import Control.Lens (view, (^.))
-import Control.Monad (guard, join)
+import Control.Monad (guard, join, void)
 import Control.Monad.Combinators.Expr
 import Data.Foldable (Foldable (..), asum)
 import Data.Functor (($>))
@@ -16,6 +16,7 @@ import Data.Map qualified as M
 import Data.Maybe (mapMaybe)
 import Data.Set qualified as S
 import Data.Set.Lens (setOf)
+import Data.Text (Text)
 import Swarm.Language.Parser.Core
 import Swarm.Language.Parser.Lex
 import Swarm.Language.Parser.Record (parseRecord)
@@ -103,11 +104,17 @@ parseTermAtom2 =
           <*> pure Nothing
           <*> (optional (symbol ";") *> (parseTerm <|> (eof $> sNoop)))
         <|> SRcd <$> brackets (parseRecord (optional (symbol "=" *> parseTerm)))
+        <|> SImportIn
+          <$> parseURL
+          <*> (optional (void (symbol ";") <|> reserved "in") *> (parseTerm <|> (eof $> sNoop)))
         <|> parens (view sTerm . mkTuple <$> (parseTerm `sepBy` symbol ","))
     )
     <|> parseLoc (TDelay (TConst Noop) <$ try (symbol "{" *> symbol "}"))
     <|> parseLoc (SDelay <$> braces parseTerm)
     <|> parseLoc (view antiquoting >>= (guard . (== AllowAntiquoting)) >> parseAntiquotation)
+
+parseURL :: Parser ImportLocation
+parseURL = undefined
 
 -- | Construct an 'SLet', automatically filling in the Boolean field
 --   indicating whether it is recursive.

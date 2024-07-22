@@ -165,7 +165,7 @@ primitiveTypeNames = "Cmd" : baseTypeNames
 
 -- | List of keywords built into the language.
 keywords :: [Text]
-keywords = T.words "let in def tydef end true false forall require requirements rec"
+keywords = T.words "let in def tydef end true false forall require requirements rec import"
 
 -- | List of reserved words that cannot be used as variable names.
 reservedWords :: Set Text

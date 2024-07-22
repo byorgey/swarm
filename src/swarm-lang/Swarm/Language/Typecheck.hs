@@ -604,6 +604,8 @@ data InvalidAtomicReason
     LongConst
   | -- | The argument contained a suspend
     AtomicSuspend
+  | -- | The argument container an import
+    AtomicImport
   deriving (Show)
 
 instance PrettyPrec InvalidAtomicReason where
@@ -616,6 +618,7 @@ instance PrettyPrec InvalidAtomicReason where
     LongConst -> "commands that can take multiple ticks to execute are not allowed"
     AtomicSuspend ->
       "encountered a suspend command inside an atomic block" <> hardline <> reportBug
+    AtomicImport -> "import is not allowed"
 
 --------------------------------------------------
 -- Type errors with context
@@ -1473,6 +1476,7 @@ analyzeAtomic locals (Syntax l t) = case t of
   -- We should never encounter a suspend since it cannot be written
   -- explicitly in the surface syntax.
   SSuspend {} -> throwTypeErr l $ InvalidAtomic AtomicSuspend t
+  SImportIn {} -> throwTypeErr l $ InvalidAtomic AtomicImport t
 
 -- | A simple polytype is a simple type with no quantifiers.
 isSimpleUPolytype :: UPolytype -> Bool
