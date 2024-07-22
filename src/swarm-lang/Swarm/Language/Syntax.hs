@@ -44,6 +44,7 @@ module Swarm.Language.Syntax (
   afterComments,
 
   -- * Syntax
+  ImportLocation (..),
   Syntax' (..),
   sLoc,
   sTerm,
