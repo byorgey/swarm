@@ -158,6 +158,8 @@ requirements tdCtx ctx =
       expandEq (x, Nothing) = TVar x
       expandEq (_, Just t) = t
     TProj t _ -> add (singletonCap CRecord) *> go t
+    -- XXX Should import require a dictionary or something like that?
+    TImportIn _loc t -> go t
     -- A type ascription doesn't change requirements
     TAnnotate t ty -> go t *> polytypeRequirements ty
 
