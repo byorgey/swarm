@@ -698,6 +698,8 @@ stepCESK cesk = case cesk of
   -- If we see a primitive application of suspend, package it up as
   -- a value until it's time to execute.
   In (TSuspend t) e s k -> return $ Out (VSuspend t e) s k
+  -- Imports turn into no-ops at runtime
+  In (TImportIn _ t) e s k -> return $ In t e s k
   ------------------------------------------------------------
   -- Execution
 

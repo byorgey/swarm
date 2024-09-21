@@ -7,7 +7,7 @@
 --
 -- Types representing the surface syntax and terms for Swarm programming language.
 module Swarm.Language.Syntax.AST (
-  ImportLocation (..),
+  ImportLocation,
   Syntax' (..),
   LetSyntax (..),
   Term' (..),
@@ -170,8 +170,14 @@ data Term' ty
 instance Data ty => Plated (Term' ty) where
   plate = uniplate
 
--- | XXX
-data ImportLocation = LocalFile Text | RemoteFile Text
-  deriving (Eq, Ord, Show, Data, Generic)
+-- | A location from which to import a `.sw` file.
+type ImportLocation = Text
 
--- XXX For RemoteFile, use HttpIri from iri package
+-- Note, it could make sense to use a more structured type for the
+-- import location, e.g. something like
+--
+--   data ImportLocation = LocalFile Text | RemoteFile URL
+--
+-- (dhall does something like this; see
+-- https://hackage.haskell.org/package/dhall-1.42.1/docs/Dhall-Core.html#t:ImportType). For
+-- now, we leave things simple.
