@@ -448,6 +448,7 @@ library swarm-lang
     Swarm.Language.JSON
     Swarm.Language.Key
     Swarm.Language.Kindcheck
+    Swarm.Language.Load
     Swarm.Language.LSP
     Swarm.Language.LSP.Hover
     Swarm.Language.LSP.VarUsage
