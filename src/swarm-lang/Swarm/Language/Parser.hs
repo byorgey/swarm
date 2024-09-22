@@ -44,7 +44,7 @@ readNonemptyTerm = readTerm >=> maybeToEither "Empty term"
 readTerm :: Text -> Either Text (Maybe Syntax)
 readTerm = first (from . errorBundlePretty) . readTerm' defaultParserConfig
 
--- | A lower-level `readTerm` which allow configuring the parser and
+-- | A lower-level `readTerm` which allows configuring the parser and
 --   returns the megaparsec bundle error for precise error reporting.
 readTerm' :: ParserConfig -> Text -> Either ParserError (Maybe Syntax)
 readTerm' cfg = second handleComments . runParser' cfg (fullyMaybe sc parseTerm)
