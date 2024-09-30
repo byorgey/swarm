@@ -7,7 +7,6 @@
 --
 -- Types representing the surface syntax and terms for Swarm programming language.
 module Swarm.Language.Syntax.AST (
-  ImportLocation,
   Syntax' (..),
   LetSyntax (..),
   Term' (..),
@@ -25,12 +24,15 @@ import Swarm.Language.Requirements.Type (Requirements)
 import Swarm.Language.Syntax.Comments
 import Swarm.Language.Syntax.Constants
 import Swarm.Language.Syntax.Direction
+import Swarm.Language.Syntax.Import
 import Swarm.Language.Syntax.Loc
 import Swarm.Language.Types
 
 ------------------------------------------------------------
 -- Syntax: annotation on top of Terms with SrcLoc, comments, + type
 ------------------------------------------------------------
+
+-- XXX generalize ty annotation to phase?  Raw -> Imports loaded -> Typechecked -> Elaborated ?
 
 -- | The surface syntax for the language, with location and type annotations.
 data Syntax' ty = Syntax'
@@ -147,7 +149,7 @@ data Term' ty
     TType Type
   | -- | Import a term containing definitions, which will be in scope
     --   in the following term.
-    SImportIn ImportLocation (Syntax' ty)
+    SImportIn (ImportLoc Parsed) (Syntax' ty)
   deriving
     ( Eq
     , Show
@@ -169,15 +171,3 @@ data Term' ty
 
 instance Data ty => Plated (Term' ty) where
   plate = uniplate
-
--- | A location from which to import a `.sw` file.
-type ImportLocation = FilePath
-
--- Note, it could make sense to use a more structured type for the
--- import location, e.g. something like
---
---   data ImportLocation = LocalFile Text | RemoteFile URL
---
--- (dhall does something like this; see
--- https://hackage.haskell.org/package/dhall-1.42.1/docs/Dhall-Core.html#t:ImportType). For
--- now, we leave things simple.
