@@ -19,8 +19,10 @@ import Data.Text (Text)
 import Swarm.Failure (Asset (..), AssetData (..), Entry (..), LoadingFailure (..), SystemFailure (AssetNotLoaded))
 import Swarm.Language.Parser (readTerm')
 import Swarm.Language.Parser.Core (defaultParserConfig)
-import Swarm.Language.Syntax
+import Swarm.Language.Syntax (ImportDir, ImportLocation (..), Syntax)
 import Swarm.Util (readFileMay)
+import System.Directory (doesFileExist)
+import System.FilePath ((</>))
 import Witch (into)
 
 -- | A SourceMap associates canonical 'ImportLocation's to parsed
@@ -28,17 +30,22 @@ import Witch (into)
 --   to be nonempty, so we allow it.
 type SourceMap = Map ImportLocation (Maybe Syntax)
 
--- | Fully resolve/canonicalize implicitly specified import locations,
---   relative to a given base import location.  In order, the following will be tried:
---   - The given For example, when importing it is
+doesLocationExist :: (Has (Lift IO) sig m) => ImportLocation -> m Bool
+doesLocationExist (ImportLocation dir f) = sendIO $ doesFileExist (dir </> f)
+
+-- | XXX edit this
+--   Fully resolve/canonicalize implicitly specified import locations,
+--   relative to a given base import location.
+--
+--   For example, when importing it is
 --   allowed to omit a trailing @.sw@ extension; resolving will add
 --   the extension.
 resolveImportLocation ::
   (Has (Throw SystemFailure) sig m, Has (Lift IO) sig m) =>
-  ImportLocation ->
+  ImportDir ->
   ImportLocation ->
   m ImportLocation
-resolveImportLocation relativeTo loc = undefined
+resolveImportLocation parent loc = undefined
 
 -- XXX copied this code from the code for executing Run.
 -- Need to first move Swarm.Game.ResourceLoading to Swarm.ResourceLoading in swarm-util,
