@@ -10,16 +10,18 @@ module Swarm.Language.Load (
 
 import Control.Algebra (Has)
 import Control.Carrier.State.Strict (execState)
-import Control.Effect.Lift (Lift)
-import Control.Effect.State (State)
-import Control.Effect.Throw (Throw)
+import Control.Effect.Lift (Lift, sendIO)
+import Control.Effect.State (State, get, modify)
+import Control.Effect.Throw (Throw, throwError)
 import Data.Map (Map)
 import Data.Map qualified as M
 import Data.Text (Text)
-import Swarm.Failure (SystemFailure)
+import Swarm.Failure (Asset (..), AssetData (..), Entry (..), LoadingFailure (..), SystemFailure (AssetNotLoaded))
 import Swarm.Language.Parser (readTerm')
 import Swarm.Language.Parser.Core (defaultParserConfig)
 import Swarm.Language.Syntax
+import Swarm.Util (readFileMay)
+import Witch (into)
 
 -- | A SourceMap associates canonical 'ImportLocation's to parsed
 --   ASTs.  There's no particular reason to require an imported module
@@ -27,14 +29,16 @@ import Swarm.Language.Syntax
 type SourceMap = Map ImportLocation (Maybe Syntax)
 
 -- | Fully resolve/canonicalize implicitly specified import locations,
---   while loading their content.  For example, when importing it is
+--   relative to a given base import location.  In order, the following will be tried:
+--   - The given For example, when importing it is
 --   allowed to omit a trailing @.sw@ extension; resolving will add
 --   the extension.
 resolveImportLocation ::
   (Has (Throw SystemFailure) sig m, Has (Lift IO) sig m) =>
   ImportLocation ->
-  m (ImportLocation, Text)
-resolveImportLocation = undefined
+  ImportLocation ->
+  m ImportLocation
+resolveImportLocation relativeTo loc = undefined
 
 -- XXX copied this code from the code for executing Run.
 -- Need to first move Swarm.Game.ResourceLoading to Swarm.ResourceLoading in swarm-util,
@@ -75,7 +79,19 @@ loadRec ::
   ImportLocation ->
   m ()
 loadRec loc = do
-  (loc', src) <- resolveImportLocation loc
-  case readTerm' defaultParserConfig src of
-    Left err -> undefined
-    Right s -> undefined
+  canonicalLoc <- resolveImportLocation loc
+  srcMap <- get @SourceMap
+  case M.lookup canonicalLoc srcMap of
+    Just _ -> pure () -- already loaded - do nothing
+    Nothing -> do
+      msrc <- sendIO $ readFileMay canonicalLoc
+      case msrc of
+        Nothing -> throwError $ AssetNotLoaded (Data Script) canonicalLoc (DoesNotExist File)
+        Just src -> case readTerm' defaultParserConfig (into @Text src) of
+          Left err -> throwError $ AssetNotLoaded (Data Script) canonicalLoc (CanNotParseMegaparsec err)
+          Right t -> do
+            modify @SourceMap (M.insert canonicalLoc t)
+
+-- XXX enumerate imports and recursively load them.
+-- XXX need to resolve imports relative to location of the file that imported them
+-- XXX recursively load imports
