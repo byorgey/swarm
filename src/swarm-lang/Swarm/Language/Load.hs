@@ -16,6 +16,7 @@ import Control.Effect.Throw (Throw)
 import Data.Map (Map)
 import Data.Map qualified as M
 import Data.Text (Text)
+import Swarm.Failure (SystemFailure)
 import Swarm.Language.Parser (readTerm')
 import Swarm.Language.Parser.Core (defaultParserConfig)
 import Swarm.Language.Syntax
@@ -25,14 +26,12 @@ import Swarm.Language.Syntax
 --   to be nonempty, so we allow it.
 type SourceMap = Map ImportLocation (Maybe Syntax)
 
-data LoadError = NotFound
-
 -- | Fully resolve/canonicalize implicitly specified import locations,
 --   while loading their content.  For example, when importing it is
 --   allowed to omit a trailing @.sw@ extension; resolving will add
 --   the extension.
 resolveImportLocation ::
-  (Has (Throw LoadError) sig m, Has (Lift IO) sig m) =>
+  (Has (Throw SystemFailure) sig m, Has (Lift IO) sig m) =>
   ImportLocation ->
   m (ImportLocation, Text)
 resolveImportLocation = undefined
@@ -41,7 +40,7 @@ resolveImportLocation = undefined
 --   recursively loading and parsing any imports, ultimately returning
 --   a 'SourceMap' from locations to parsed ASTs.
 load ::
-  (Has (Throw LoadError) sig m, Has (Lift IO) sig m) =>
+  (Has (Throw SystemFailure) sig m, Has (Lift IO) sig m) =>
   ImportLocation ->
   m SourceMap
 load = loadWith M.empty
@@ -57,14 +56,14 @@ load = loadWith M.empty
 --   reload things from disk/network in case they have changed, use
 --   'load' instead.
 loadWith ::
-  (Has (Throw LoadError) sig m, Has (Lift IO) sig m) =>
+  (Has (Throw SystemFailure) sig m, Has (Lift IO) sig m) =>
   SourceMap ->
   ImportLocation ->
   m SourceMap
 loadWith srcMap = execState srcMap . loadRec
 
 loadRec ::
-  (Has (Throw LoadError) sig m, Has (State SourceMap) sig m, Has (Lift IO) sig m) =>
+  (Has (Throw SystemFailure) sig m, Has (State SourceMap) sig m, Has (Lift IO) sig m) =>
   ImportLocation ->
   m ()
 loadRec loc = do
