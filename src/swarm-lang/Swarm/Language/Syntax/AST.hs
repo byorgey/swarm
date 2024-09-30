@@ -171,7 +171,7 @@ instance Data ty => Plated (Term' ty) where
   plate = uniplate
 
 -- | A location from which to import a `.sw` file.
-type ImportLocation = Text
+type ImportLocation = FilePath
 
 -- Note, it could make sense to use a more structured type for the
 -- import location, e.g. something like
