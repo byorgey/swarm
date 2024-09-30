@@ -36,6 +36,14 @@ resolveImportLocation ::
   m (ImportLocation, Text)
 resolveImportLocation = undefined
 
+-- XXX copied this code from the code for executing Run.
+-- Need to first move Swarm.Game.ResourceLoading to Swarm.ResourceLoading in swarm-util,
+-- so it will be accessible here.
+
+-- sData <- throwToMaybe @SystemFailure $ getDataFileNameSafe Script filePath
+-- sDataSW <- throwToMaybe @SystemFailure $ getDataFileNameSafe Script (filePath <> ".sw")
+-- mf <- sendIO $ mapM readFileMay $ [filePath, filePath <> ".sw"] <> catMaybes [sData, sDataSW]
+
 -- | Load and parse Swarm source code from a given location,
 --   recursively loading and parsing any imports, ultimately returning
 --   a 'SourceMap' from locations to parsed ASTs.
