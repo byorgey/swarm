@@ -21,20 +21,35 @@ import Data.Text (Text)
 import Swarm.Failure (Asset (..), AssetData (..), Entry (..), LoadingFailure (..), SystemFailure (AssetNotLoaded))
 import Swarm.Language.Parser (readTerm')
 import Swarm.Language.Parser.Core (defaultParserConfig)
-import Swarm.Language.Syntax.Import (ImportDir, ImportLoc (..), PathStatus (..))
+import Swarm.Language.Syntax.Import (Anchor (..), ImportDir, ImportLoc (..), PathStatus (..), withImportDir)
 import Swarm.Language.Syntax.Pattern (Syntax)
 import Swarm.Util (readFileMay)
-import System.Directory (doesFileExist)
-import System.FilePath ((</>))
+import System.Directory (doesFileExist, getCurrentDirectory, getHomeDirectory)
+import System.FilePath (joinPath, splitPath, (</>))
 import Witch (into)
 
--- | A SourceMap associates canonical 'ImportLocation's to parsed
---   ASTs.  There's no particular reason to require an imported module
---   to be nonempty, so we allow it.
-type SourceMap = Map (ImportLoc Canonical) (Maybe Syntax)
+------------------------------------------------------------
+-- Import location utilities
 
-doesLocationExist :: (Has (Lift IO) sig m) => ImportLoc Canonical -> m Bool
-doesLocationExist loc = undefined
+anchorToFilePath :: (Has (Lift IO) sig m) => Anchor -> m FilePath
+anchorToFilePath = \case
+  Web w -> pure $ into @FilePath w
+  Local n -> local n <$> sendIO getCurrentDirectory
+  Home -> sendIO getHomeDirectory
+  Absolute -> pure "/"
+
+local :: Int -> FilePath -> FilePath
+local n = ("/" </>) . joinPath . reverse . drop n . reverse . splitPath
+
+dirToFilePath :: (Has (Lift IO) sig m) => ImportDir Canonical -> m FilePath
+dirToFilePath = withImportDir $ \a p -> do
+  af <- anchorToFilePath a
+  pure $ af </> joinPath (map (into @FilePath) p)
+
+locToFilePath :: (Has (Lift IO) sig m) => ImportLoc Canonical -> m FilePath
+locToFilePath (ImportLoc d f) = do
+  df <- dirToFilePath d
+  pure $ df </> into @FilePath f
 
 -- | XXX edit this
 --   Fully resolve/canonicalize implicitly specified import locations,
@@ -49,6 +64,11 @@ resolveImportLocation ::
   ImportLoc Canonical ->
   m (ImportLoc Canonical)
 resolveImportLocation parent loc = undefined
+
+-- | A SourceMap associates canonical 'ImportLocation's to parsed
+--   ASTs.  There's no particular reason to require an imported module
+--   to be nonempty, so we allow it.
+type SourceMap = Map (ImportLoc Canonical) (Maybe Syntax)
 
 -- XXX copied this code from the code for executing Run.
 -- Need to first move Swarm.Game.ResourceLoading to Swarm.ResourceLoading in swarm-util,
