@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -- |
 -- SPDX-License-Identifier: BSD-3-Clause
@@ -18,10 +19,11 @@ import Control.Effect.Throw (Throw, throwError)
 import Data.Map (Map)
 import Data.Map qualified as M
 import Data.Text (Text)
+import Data.Text qualified as T
 import Swarm.Failure (Asset (..), AssetData (..), Entry (..), LoadingFailure (..), SystemFailure (AssetNotLoaded))
 import Swarm.Language.Parser (readTerm')
 import Swarm.Language.Parser.Core (defaultParserConfig)
-import Swarm.Language.Syntax.Import (Anchor (..), ImportDir, ImportLoc (..), PathStatus (..), withImportDir)
+import Swarm.Language.Syntax.Import (Anchor (..), ImportDir, ImportLoc (..), PathStatus (..), importAnchor, withImportDir)
 import Swarm.Language.Syntax.Pattern (Syntax)
 import Swarm.Util (readFileMay)
 import System.Directory (doesFileExist, getCurrentDirectory, getHomeDirectory)
@@ -51,6 +53,16 @@ locToFilePath (ImportLoc d f) = do
   df <- dirToFilePath d
   pure $ df </> into @FilePath f
 
+-- XXX simply assume web resources exist without checking?  + require them to be fully named...?
+doesLocationExist :: (Has (Lift IO) sig m) => ImportLoc Canonical -> m Bool
+doesLocationExist loc = do
+  fp <- locToFilePath loc
+  case importAnchor (importDir loc) of
+    Web {} -> pure True
+    _ -> sendIO $ doesFileExist fp
+
+-- XXX need to be able to resolve "local" to something in a standard Swarm data location??
+
 -- | XXX edit this
 --   Fully resolve/canonicalize implicitly specified import locations,
 --   relative to a given base import location.
@@ -63,7 +75,16 @@ resolveImportLocation ::
   ImportDir Canonical ->
   ImportLoc Canonical ->
   m (ImportLoc Canonical)
-resolveImportLocation parent loc = undefined
+resolveImportLocation parent (ImportLoc d f) = do
+  e1 <- doesLocationExist loc'
+  e2 <- doesLocationExist loc'sw
+  case (e1, e2) of
+    (False, True) -> pure loc'sw -- XXX comment me
+    _ -> pure loc'
+ where
+  d' = parent <> d
+  loc' = ImportLoc d' f
+  loc'sw = ImportLoc d' (T.append f ".sw")
 
 -- | A SourceMap associates canonical 'ImportLocation's to parsed
 --   ASTs.  There's no particular reason to require an imported module

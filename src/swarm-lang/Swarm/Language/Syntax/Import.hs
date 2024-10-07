@@ -16,6 +16,7 @@ module Swarm.Language.Syntax.Import (
   ImportDir,
   mkImportDir,
   withImportDir,
+  importAnchor,
 
   -- * ImportLoc
   ImportLoc (..),
@@ -80,7 +81,7 @@ data PathStatus = Parsed | Canonical
 --   can use 'canonicalizeImportDir' (or 'canonicalizeImportLoc') to
 --   turn it into an @'ImportDir' 'Canonical'@.  To pattern-match on
 --   an 'ImportDir', use 'withImportDir'.
-data ImportDir (c :: PathStatus) = ImportDir {importAnchor :: Anchor, importPath :: [Text]}
+data ImportDir (c :: PathStatus) = ImportDir Anchor [Text]
   deriving (Eq, Show, Data, Generic, FromJSON, ToJSON)
 
 -- | Constructor for 'ImportDir' (we do not export the actual
@@ -91,6 +92,9 @@ mkImportDir = ImportDir
 -- | Destructor/eliminator for 'ImportDir'.
 withImportDir :: (Anchor -> [Text] -> r) -> ImportDir c -> r
 withImportDir f (ImportDir a p) = f a p
+
+importAnchor :: ImportDir Canonical -> Anchor
+importAnchor (ImportDir a _) = a
 
 -- The Semigroup instance for 'ImportDir' interprets the second in the
 -- context of the first.  If the second 'ImportDir' is not local
