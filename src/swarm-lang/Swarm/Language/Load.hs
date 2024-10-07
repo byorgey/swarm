@@ -1,3 +1,5 @@
+{-# LANGUAGE DataKinds #-}
+
 -- |
 -- SPDX-License-Identifier: BSD-3-Clause
 --
@@ -19,7 +21,8 @@ import Data.Text (Text)
 import Swarm.Failure (Asset (..), AssetData (..), Entry (..), LoadingFailure (..), SystemFailure (AssetNotLoaded))
 import Swarm.Language.Parser (readTerm')
 import Swarm.Language.Parser.Core (defaultParserConfig)
-import Swarm.Language.Syntax (ImportDir, ImportLocation (..), Syntax)
+import Swarm.Language.Syntax.Import (ImportDir, ImportLoc (..), PathStatus (..))
+import Swarm.Language.Syntax.Pattern (Syntax)
 import Swarm.Util (readFileMay)
 import System.Directory (doesFileExist)
 import System.FilePath ((</>))
@@ -28,10 +31,10 @@ import Witch (into)
 -- | A SourceMap associates canonical 'ImportLocation's to parsed
 --   ASTs.  There's no particular reason to require an imported module
 --   to be nonempty, so we allow it.
-type SourceMap = Map ImportLocation (Maybe Syntax)
+type SourceMap = Map (ImportLoc Canonical) (Maybe Syntax)
 
-doesLocationExist :: (Has (Lift IO) sig m) => ImportLocation -> m Bool
-doesLocationExist (ImportLocation dir f) = sendIO $ doesFileExist (dir </> f)
+doesLocationExist :: (Has (Lift IO) sig m) => ImportLoc Canonical -> m Bool
+doesLocationExist loc = undefined
 
 -- | XXX edit this
 --   Fully resolve/canonicalize implicitly specified import locations,
@@ -42,9 +45,9 @@ doesLocationExist (ImportLocation dir f) = sendIO $ doesFileExist (dir </> f)
 --   the extension.
 resolveImportLocation ::
   (Has (Throw SystemFailure) sig m, Has (Lift IO) sig m) =>
-  ImportDir ->
-  ImportLocation ->
-  m ImportLocation
+  ImportDir Canonical ->
+  ImportLoc Canonical ->
+  m (ImportLoc Canonical)
 resolveImportLocation parent loc = undefined
 
 -- XXX copied this code from the code for executing Run.
@@ -60,7 +63,7 @@ resolveImportLocation parent loc = undefined
 --   a 'SourceMap' from locations to parsed ASTs.
 load ::
   (Has (Throw SystemFailure) sig m, Has (Lift IO) sig m) =>
-  ImportLocation ->
+  ImportLoc Canonical ->
   m SourceMap
 load = loadWith M.empty
 
@@ -77,27 +80,29 @@ load = loadWith M.empty
 loadWith ::
   (Has (Throw SystemFailure) sig m, Has (Lift IO) sig m) =>
   SourceMap ->
-  ImportLocation ->
+  ImportLoc Canonical ->
   m SourceMap
 loadWith srcMap = execState srcMap . loadRec
 
 loadRec ::
   (Has (Throw SystemFailure) sig m, Has (State SourceMap) sig m, Has (Lift IO) sig m) =>
-  ImportLocation ->
+  ImportLoc Canonical ->
   m ()
-loadRec loc = do
-  canonicalLoc <- resolveImportLocation loc
-  srcMap <- get @SourceMap
-  case M.lookup canonicalLoc srcMap of
-    Just _ -> pure () -- already loaded - do nothing
-    Nothing -> do
-      msrc <- sendIO $ readFileMay canonicalLoc
-      case msrc of
-        Nothing -> throwError $ AssetNotLoaded (Data Script) canonicalLoc (DoesNotExist File)
-        Just src -> case readTerm' defaultParserConfig (into @Text src) of
-          Left err -> throwError $ AssetNotLoaded (Data Script) canonicalLoc (CanNotParseMegaparsec err)
-          Right t -> do
-            modify @SourceMap (M.insert canonicalLoc t)
+loadRec = undefined
+
+-- loadRec loc = do
+--   canonicalLoc <- resolveImportLocation loc
+--   srcMap <- get @SourceMap
+--   case M.lookup canonicalLoc srcMap of
+--     Just _ -> pure () -- already loaded - do nothing
+--     Nothing -> do
+--       msrc <- sendIO $ readFileMay canonicalLoc
+--       case msrc of
+--         Nothing -> throwError $ AssetNotLoaded (Data Script) canonicalLoc (DoesNotExist File)
+--         Just src -> case readTerm' defaultParserConfig (into @Text src) of
+--           Left err -> throwError $ AssetNotLoaded (Data Script) canonicalLoc (CanNotParseMegaparsec err)
+--           Right t -> do
+--             modify @SourceMap (M.insert canonicalLoc t)
 
 -- XXX enumerate imports and recursively load them.
 -- XXX need to resolve imports relative to location of the file that imported them
