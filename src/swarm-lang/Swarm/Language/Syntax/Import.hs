@@ -7,13 +7,18 @@
 --
 -- XXX
 module Swarm.Language.Syntax.Import (
-  PathStatus (Parsed),
-  ImportDir (..),
+  PathStatus (..),
+  ImportDir,
+  mkImportDir,
+  withImportDir,
   ImportLoc (..),
+  forgetCanonical,
   canonicalizeImportDir,
   canonicalizeImportLoc,
 ) where
 
+import Data.Aeson (FromJSON, ToJSON)
+import Data.Coerce (coerce)
 import Data.Data
 import Data.Text (Text)
 import GHC.Generics (Generic)
@@ -30,7 +35,7 @@ data Anchor where
   Home :: Anchor
   -- | Absolute, /i.e./ relative to the filesystem root.
   Absolute :: Anchor
-  deriving (Eq, Show, Data, Generic)
+  deriving (Eq, Show, Data, Generic, FromJSON, ToJSON)
 
 -- XXX facility for creating import dir, make sure it is canonicalized
 -- e.g. what if .. or . shows up in the middle
@@ -53,8 +58,21 @@ data PathStatus = Parsed | Canonical
 --   backslashes as path separators in import expressions regardless
 --   of the OS, then turn it into an actual OS path in an appropriate
 --   way.
+--
+--   The constructor of 'ImportDir' is not exported.  This is a
+--   deliberate choice to enforce safety: it is only possible to
+--   create an @'ImportDir' 'Parsed'@ with 'mkImportDir', and then one
+--   can use 'canonicalizeImportDir' (or 'canonicalizeImportLoc') to
+--   turn it into an @'ImportDir' 'Canonical'@.  To pattern-match on
+--   an 'ImportDir', use 'withImportDir'.
 data ImportDir (c :: PathStatus) = ImportDir {importAnchor :: Anchor, importPath :: [Text]}
-  deriving (Eq, Show, Data, Generic)
+  deriving (Eq, Show, Data, Generic, FromJSON, ToJSON)
+
+mkImportDir :: Anchor -> [Text] -> ImportDir Parsed
+mkImportDir = ImportDir
+
+withImportDir :: (Anchor -> [Text] -> r) -> ImportDir c -> r
+withImportDir f (ImportDir a p) = f a p
 
 -- The Semigroup instance for 'ImportDir' interprets the second in the
 -- context of the first.  If the second 'ImportDir' is not local
@@ -81,7 +99,10 @@ instance Monoid (ImportDir Canonical) where
 -- | A location from which to import a file containing Swarm code,
 --   consisting of a directory paired with a filename.
 data ImportLoc c = ImportLoc {importDir :: ImportDir c, importFile :: Text}
-  deriving (Eq, Show, Data, Generic)
+  deriving (Eq, Show, Data, Generic, FromJSON, ToJSON)
+
+forgetCanonical :: ImportDir p -> ImportDir Parsed
+forgetCanonical = coerce
 
 canonicalizeImportDir :: ImportDir Parsed -> ImportDir Canonical
 canonicalizeImportDir = undefined

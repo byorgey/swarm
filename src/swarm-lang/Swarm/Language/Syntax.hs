@@ -45,7 +45,8 @@ module Swarm.Language.Syntax (
 
   -- * Syntax
   ImportDir,
-  ImportLocation (..),
+  PathStatus (..),
+  ImportLoc (..),
   Syntax' (..),
   sLoc,
   sTerm,

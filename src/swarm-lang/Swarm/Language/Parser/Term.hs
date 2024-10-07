@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -- |
@@ -105,8 +106,8 @@ parseTermAtom2 =
     <|> parseLoc (SDelay <$> braces parseTerm)
     <|> parseLoc (view antiquoting >>= (guard . (== AllowAntiquoting)) >> parseAntiquotation)
 
-parseImportLocation :: Parser ImportLocation
-parseImportLocation = textLiteral
+parseImportLocation :: Parser (ImportLoc Parsed)
+parseImportLocation = undefined
 
 -- | Construct an 'SLet', automatically filling in the Boolean field
 --   indicating whether it is recursive.
