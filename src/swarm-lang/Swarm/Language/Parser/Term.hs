@@ -112,6 +112,7 @@ parseTermAtom2 =
     <|> parseLoc (SDelay <$> braces parseTerm)
     <|> parseLoc (view antiquoting >>= (guard . (== AllowAntiquoting)) >> parseAntiquotation)
 
+-- XXX move this to a dedicated module??
 parseImportLocation :: Parser (ImportLoc Parsed)
 parseImportLocation =
   lexeme . between (char '"') (char '"') $ do
