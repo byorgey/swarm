@@ -7,6 +7,9 @@
 -- Loading Swarm modules from disk or network, recursively loading
 -- any imports.
 module Swarm.Language.Load (
+  dirToFilePath,
+  locToFilePath,
+  resolveImportLoc,
   load,
   loadWith,
 ) where
@@ -33,27 +36,35 @@ import Witch (into)
 ------------------------------------------------------------
 -- Import location utilities
 
+-- | Turn an 'Anchor' into a concrete 'FilePath' (or URL).
 anchorToFilePath :: (Has (Lift IO) sig m) => Anchor -> m FilePath
 anchorToFilePath = \case
   Web w -> pure $ into @FilePath w
   Local n -> local n <$> sendIO getCurrentDirectory
   Home -> sendIO getHomeDirectory
   Absolute -> pure "/"
+ where
+  local :: Int -> FilePath -> FilePath
+  local n = ("/" </>) . joinPath . reverse . drop n . reverse . splitPath
 
-local :: Int -> FilePath -> FilePath
-local n = ("/" </>) . joinPath . reverse . drop n . reverse . splitPath
-
+-- | Turn an 'ImportDir' into a concrete 'FilePath' (or URL).
 dirToFilePath :: (Has (Lift IO) sig m) => ImportDir Canonical -> m FilePath
 dirToFilePath = withImportDir $ \a p -> do
   af <- anchorToFilePath a
   pure $ af </> joinPath (map (into @FilePath) p)
 
+-- | Turn an 'ImportLoc' into a concrete 'FilePath' (or URL).
 locToFilePath :: (Has (Lift IO) sig m) => ImportLoc Canonical -> m FilePath
 locToFilePath (ImportLoc d f) = do
   df <- dirToFilePath d
   pure $ df </> into @FilePath f
 
 -- XXX simply assume web resources exist without checking?  + require them to be fully named...?
+
+-- | Check whether a given 'ImportLoc' in fact exists.  Note that, for
+--   the sake of efficiency, this simply assumes that any 'Web'
+--   resource exists without checking; all other locations will
+--   actually be checked.
 doesLocationExist :: (Has (Lift IO) sig m) => ImportLoc Canonical -> m Bool
 doesLocationExist loc = do
   fp <- locToFilePath loc
@@ -63,37 +74,38 @@ doesLocationExist loc = do
 
 -- XXX need to be able to resolve "local" to something in a standard Swarm data location??
 
--- | XXX edit this
---   Fully resolve/canonicalize implicitly specified import locations,
---   relative to a given base import location.
+-- | Fully resolve an implicitly specified import location, relative
+--   to a given base directory, possibly appending @.sw@.
 --
---   For example, when importing it is
---   allowed to omit a trailing @.sw@ extension; resolving will add
---   the extension.
-resolveImportLocation ::
+--   Note that URLs will /not/ have @.sw@ appended
+--   automatically.
+resolveImportLoc ::
   (Has (Throw SystemFailure) sig m, Has (Lift IO) sig m) =>
   ImportDir Canonical ->
   ImportLoc Canonical ->
   m (ImportLoc Canonical)
-resolveImportLocation parent (ImportLoc d f) = do
+resolveImportLoc parent (ImportLoc d f) = do
   e1 <- doesLocationExist loc'
   e2 <- doesLocationExist loc'sw
   case (e1, e2) of
-    (False, True) -> pure loc'sw -- XXX comment me
+    -- Only automatically add .sw extension if the original location
+    -- does not exist, but the location with .sw appended does
+    (False, True) -> pure loc'sw
     _ -> pure loc'
  where
   d' = parent <> d
   loc' = ImportLoc d' f
-  loc'sw = ImportLoc d' (T.append f ".sw")
+  loc'sw = ImportLoc d' (f <> ".sw")
 
 -- | A SourceMap associates canonical 'ImportLocation's to parsed
 --   ASTs.  There's no particular reason to require an imported module
 --   to be nonempty, so we allow it.
 type SourceMap = Map (ImportLoc Canonical) (Maybe Syntax)
 
--- XXX copied this code from the code for executing Run.
--- Need to first move Swarm.Game.ResourceLoading to Swarm.ResourceLoading in swarm-util,
--- so it will be accessible here.
+-- XXX copied this code from the code for executing Run. Do we need to
+-- deal with loading things from standard swarm script dirs, for
+-- scenario code?  Or maybe we just make that a new type of anchor,
+-- with new syntax?
 
 -- sData <- throwToMaybe @SystemFailure $ getDataFileNameSafe Script filePath
 -- sDataSW <- throwToMaybe @SystemFailure $ getDataFileNameSafe Script (filePath <> ".sw")
