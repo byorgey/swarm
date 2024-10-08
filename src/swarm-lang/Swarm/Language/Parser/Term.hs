@@ -7,26 +7,32 @@
 -- Parser for terms of the Swarm language.
 module Swarm.Language.Parser.Term where
 
+import Control.Applicative.Combinators.NonEmpty (sepBy1)
 import Control.Lens (view, (^.))
 import Control.Monad (guard, join, void)
 import Control.Monad.Combinators.Expr
 import Data.Foldable (Foldable (..), asum)
 import Data.Functor (($>))
+import Data.List.NonEmpty qualified as NE
 import Data.Map (Map)
 import Data.Map qualified as M
 import Data.Maybe (mapMaybe)
 import Data.Set qualified as S
 import Data.Set.Lens (setOf)
+import Data.Text (Text)
 import Swarm.Language.Parser.Core
 import Swarm.Language.Parser.Lex
 import Swarm.Language.Parser.Record (parseRecord)
 import Swarm.Language.Parser.Type
 import Swarm.Language.Syntax
 import Swarm.Language.Syntax.Direction
+import Swarm.Language.Syntax.Import (Anchor (..), mkImportDir)
 import Swarm.Language.Types
 import Swarm.Util (failT, findDup)
-import Text.Megaparsec hiding (runParser)
+import Text.Megaparsec hiding (runParser, sepBy1)
 import Text.Megaparsec.Char
+import Text.Megaparsec.Char.Lexer qualified as L
+import Witch (into)
 import Prelude hiding (Foldable (..))
 
 -- Imports for doctests (cabal-docspec needs this)
@@ -114,7 +120,32 @@ parseTermAtom2 =
     <|> parseLoc (view antiquoting >>= (guard . (== AllowAntiquoting)) >> parseAntiquotation)
 
 parseImportLocation :: Parser (ImportLoc Parsed)
-parseImportLocation = undefined
+parseImportLocation =
+  lexeme . between (char '"') (char '"') $ do
+    anchor <- parseAnchor
+    cs <- importComponent `sepBy1` separator
+    pure $ ImportLoc (mkImportDir anchor (NE.init cs)) (NE.last cs)
+ where
+  importComponent :: Parser Text
+  importComponent = into @Text <$> someTill L.charLiteral (lookAhead (oneOf ("\"/\\" :: [Char])))
+
+  separator :: Parser Char
+  separator = oneOf ['/', '\\']
+
+  parseAnchor :: Parser Anchor
+  parseAnchor =
+    (Absolute <$ separator)
+      <|> (Home <$ (char '~' *> separator))
+      <|> (Web <$> parseWeb)
+      <|> pure (Local 0)
+
+  parseWeb :: Parser Text
+  parseWeb =
+    mconcat
+      <$> sequenceA [scheme, string "://", into @Text <$> manyTill L.charLiteral separator]
+
+  scheme :: Parser Text
+  scheme = string "https" <|> string "http"
 
 -- | Construct an 'SLet', automatically filling in the Boolean field
 --   indicating whether it is recursive.
