@@ -21,14 +21,14 @@ import Control.Effect.Lift (Lift, sendIO)
 import Control.Effect.State (State, get, modify)
 import Control.Effect.Throw (Throw, throwError)
 import Control.Lens (universe, view)
+import Data.Function ((&))
 import Data.Map (Map)
 import Data.Map qualified as M
 import Data.Maybe (mapMaybe)
-import Data.Text (Text)
 import Swarm.Failure (Asset (..), AssetData (..), Entry (..), LoadingFailure (..), SystemFailure (AssetNotLoaded))
 import Swarm.Language.Parser (readTerm')
 import Swarm.Language.Parser.Core (defaultParserConfig)
-import Swarm.Language.Syntax.Import (Anchor (..), ImportDir, ImportLoc (..), PathStatus (..), canonicalizeImportLoc, currentDir, importAnchor, withImportDir)
+import Swarm.Language.Syntax.Import (Anchor (..), ImportDir, ImportLoc (..), currentDir, importAnchor, withImportDir)
 import Swarm.Language.Syntax.Pattern (Syntax, sTerm, pattern TImportIn)
 import Swarm.Util (readFileMayT)
 import System.Directory (doesFileExist, getCurrentDirectory, getHomeDirectory)
@@ -50,13 +50,13 @@ anchorToFilePath = \case
   local n = ("/" </>) . joinPath . reverse . drop n . reverse . splitPath
 
 -- | Turn an 'ImportDir' into a concrete 'FilePath' (or URL).
-dirToFilePath :: (Has (Lift IO) sig m) => ImportDir Canonical -> m FilePath
+dirToFilePath :: (Has (Lift IO) sig m) => ImportDir -> m FilePath
 dirToFilePath = withImportDir $ \a p -> do
   af <- anchorToFilePath a
   pure $ af </> joinPath (map (into @FilePath) p)
 
 -- | Turn an 'ImportLoc' into a concrete 'FilePath' (or URL).
-locToFilePath :: (Has (Lift IO) sig m) => ImportLoc Canonical -> m FilePath
+locToFilePath :: (Has (Lift IO) sig m) => ImportLoc -> m FilePath
 locToFilePath (ImportLoc d f) = do
   df <- dirToFilePath d
   pure $ df </> into @FilePath f
@@ -67,7 +67,7 @@ locToFilePath (ImportLoc d f) = do
 --   the sake of efficiency, this simply assumes that any 'Web'
 --   resource exists without checking; all other locations will
 --   actually be checked.
-doesLocationExist :: (Has (Lift IO) sig m) => ImportLoc Canonical -> m Bool
+doesLocationExist :: (Has (Lift IO) sig m) => ImportLoc -> m Bool
 doesLocationExist loc = do
   fp <- locToFilePath loc
   case importAnchor loc of
@@ -82,9 +82,9 @@ doesLocationExist loc = do
 --   Note that URLs will /not/ have @.sw@ appended automatically.
 resolveImportLoc ::
   (Has (Throw SystemFailure) sig m, Has (Lift IO) sig m) =>
-  ImportDir Canonical ->
-  ImportLoc Canonical ->
-  m (ImportLoc Canonical)
+  ImportDir ->
+  ImportLoc ->
+  m ImportLoc
 resolveImportLoc parent (ImportLoc d f) = do
   e1 <- doesLocationExist loc'
   e2 <- doesLocationExist loc'sw
@@ -101,23 +101,19 @@ resolveImportLoc parent (ImportLoc d f) = do
 -- | A SourceMap associates canonical 'ImportLocation's to parsed
 --   ASTs.  There's no particular reason to require an imported module
 --   to be nonempty, so we allow it.
-type SourceMap = Map (ImportLoc Canonical) (Maybe Syntax)
+type SourceMap = Map ImportLoc (Maybe Syntax)
 
 -- XXX copied this code from the code for executing Run. Do we need to
 -- deal with loading things from standard swarm script dirs, for
 -- scenario code?  Or maybe we just make that a new type of anchor,
 -- with new syntax?
 
--- sData <- throwToMaybe @SystemFailure $ getDataFileNameSafe Script filePath
--- sDataSW <- throwToMaybe @SystemFailure $ getDataFileNameSafe Script (filePath <> ".sw")
--- mf <- sendIO $ mapM readFileMay $ [filePath, filePath <> ".sw"] <> catMaybes [sData, sDataSW]
-
 -- | Load and parse Swarm source code from a given location,
 --   recursively loading and parsing any imports, ultimately returning
 --   a 'SourceMap' from locations to parsed ASTs.
 load ::
   (Has (Throw SystemFailure) sig m, Has (Lift IO) sig m) =>
-  ImportLoc Canonical ->
+  ImportLoc ->
   m SourceMap
 load = loadWith M.empty
 
@@ -134,15 +130,17 @@ load = loadWith M.empty
 loadWith ::
   (Has (Throw SystemFailure) sig m, Has (Lift IO) sig m) =>
   SourceMap ->
-  ImportLoc Canonical ->
+  ImportLoc ->
   m SourceMap
 loadWith srcMap = execState srcMap . loadRec currentDir
 
--- | XXX comment me
+-- | Given a parent directory relative to which any local imports
+--   should be interpreted, load an import and all its imports,
+--   transitively.
 loadRec ::
   (Has (Throw SystemFailure) sig m, Has (State SourceMap) sig m, Has (Lift IO) sig m) =>
-  ImportDir Canonical ->
-  ImportLoc Canonical ->
+  ImportDir ->
+  ImportLoc ->
   m ()
 loadRec parent loc = do
   canonicalLoc <- resolveImportLoc parent loc
@@ -150,33 +148,36 @@ loadRec parent loc = do
   case M.lookup canonicalLoc srcMap of
     Just _ -> pure () -- already loaded - do nothing
     Nothing -> do
-      src <- readLoc canonicalLoc
-      path <- locToFilePath canonicalLoc
-      case readTerm' defaultParserConfig src of
-        Left err -> throwError $ AssetNotLoaded (Data Script) path (CanNotParseMegaparsec err)
-        Right mt -> do
-          modify @SourceMap (M.insert canonicalLoc mt)
-          case mt of
-            Nothing -> pure ()
-            Just t -> do
-              let recImports = enumerateImports t
-              mapM_ (loadRec (importDir canonicalLoc)) recImports
+      -- not loaded yet
+      mt <- readLoc canonicalLoc -- read it from network/disk
+      modify @SourceMap (M.insert canonicalLoc mt)
+      case mt of
+        Nothing -> pure ()
+        Just t -> do
+          let recImports = enumerateImports t
+          mapM_ (loadRec (importDir canonicalLoc)) recImports
 
 -- | Enumerate all the @import@ expressions in an AST.
-enumerateImports :: Syntax -> [ImportLoc Canonical]
+enumerateImports :: Syntax -> [ImportLoc]
 enumerateImports = mapMaybe getImportLoc . universe . view sTerm
  where
-  getImportLoc (TImportIn loc _) = Just (canonicalizeImportLoc loc)
+  getImportLoc (TImportIn loc _) = Just loc
   getImportLoc _ = Nothing
 
+-- | Try to read and parse a term from a specific import location,
+--   either over the network or on disk.
 readLoc ::
   (Has (Throw SystemFailure) sig m, Has (Lift IO) sig m) =>
-  ImportLoc Canonical ->
-  m Text
+  ImportLoc ->
+  m (Maybe Syntax)
 readLoc loc = do
   path <- locToFilePath loc
-  case importAnchor loc of
+  let badImport = throwError . AssetNotLoaded (Data Script) path
+
+  -- Try to read the file from network/disk
+  src <- case importAnchor loc of
     Web {} -> undefined -- XXX load URL with some kind of HTTP library
-    _ -> sendIO (readFileMayT path) >>= maybe (throwError (notFound path)) pure
- where
-  notFound path = AssetNotLoaded (Data Script) path (DoesNotExist File)
+    _ -> sendIO (readFileMayT path) >>= maybe (badImport (DoesNotExist File)) pure
+
+  -- Try to parse the contents
+  readTerm' defaultParserConfig src & either (badImport . CanNotParseMegaparsec) pure

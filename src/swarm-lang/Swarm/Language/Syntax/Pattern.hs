@@ -44,7 +44,7 @@ import Data.Text hiding (filter, length, map)
 import Swarm.Language.Requirements.Type (Requirements)
 import Swarm.Language.Syntax.AST
 import Swarm.Language.Syntax.Comments
-import Swarm.Language.Syntax.Import (ImportLoc, PathStatus (Parsed))
+import Swarm.Language.Syntax.Import (ImportLoc)
 import Swarm.Language.Syntax.Loc
 import Swarm.Language.Types
 
@@ -146,7 +146,7 @@ pattern TSuspend :: Term -> Term
 pattern TSuspend t = SSuspend (STerm t)
 
 -- | Match a TImportIn without annotations.
-pattern TImportIn :: ImportLoc Parsed -> Term -> Term
+pattern TImportIn :: ImportLoc -> Term -> Term
 pattern TImportIn loc t = SImportIn loc (STerm t)
 
 -- COMPLETE pragma tells GHC using this set of patterns is complete for Term

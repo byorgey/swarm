@@ -120,7 +120,7 @@ parseTermAtom2 =
     <|> parseLoc (view antiquoting >>= (guard . (== AllowAntiquoting)) >> parseAntiquotation)
 
 -- XXX move this to a dedicated module??
-parseImportLocation :: Parser (ImportLoc Parsed)
+parseImportLocation :: Parser ImportLoc
 parseImportLocation =
   lexeme . between (char '"') (char '"') $ do
     anchor <- parseAnchor
