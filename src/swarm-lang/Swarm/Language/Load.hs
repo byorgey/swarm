@@ -19,16 +19,18 @@ import Control.Carrier.State.Strict (execState)
 import Control.Effect.Lift (Lift, sendIO)
 import Control.Effect.State (State, get, modify)
 import Control.Effect.Throw (Throw, throwError)
+import Control.Lens (universe, view)
 import Data.Map (Map)
 import Data.Map qualified as M
+import Data.Maybe (mapMaybe)
 import Data.Text (Text)
 import Data.Text qualified as T
 import Swarm.Failure (Asset (..), AssetData (..), Entry (..), LoadingFailure (..), SystemFailure (AssetNotLoaded))
 import Swarm.Language.Parser (readTerm')
 import Swarm.Language.Parser.Core (defaultParserConfig)
-import Swarm.Language.Syntax.Import (Anchor (..), ImportDir, ImportLoc (..), PathStatus (..), importAnchor, withImportDir)
-import Swarm.Language.Syntax.Pattern (Syntax)
-import Swarm.Util (readFileMay)
+import Swarm.Language.Syntax.Import (Anchor (..), ImportDir, ImportLoc (..), PathStatus (..), currentDir, importAnchor, withImportDir)
+import Swarm.Language.Syntax.Pattern (Syntax, TImportIn, Term, sTerm)
+import Swarm.Util (readFileMay, readFileMayT)
 import System.Directory (doesFileExist, getCurrentDirectory, getHomeDirectory)
 import System.FilePath (joinPath, splitPath, (</>))
 import Witch (into)
@@ -77,8 +79,7 @@ doesLocationExist loc = do
 -- | Fully resolve an implicitly specified import location, relative
 --   to a given base directory, possibly appending @.sw@.
 --
---   Note that URLs will /not/ have @.sw@ appended
---   automatically.
+--   Note that URLs will /not/ have @.sw@ appended automatically.
 resolveImportLoc ::
   (Has (Throw SystemFailure) sig m, Has (Lift IO) sig m) =>
   ImportDir Canonical ->
@@ -135,28 +136,47 @@ loadWith ::
   SourceMap ->
   ImportLoc Canonical ->
   m SourceMap
-loadWith srcMap = execState srcMap . loadRec
+loadWith srcMap = execState srcMap . loadRec currentDir
 
+-- | XXX comment me
 loadRec ::
   (Has (Throw SystemFailure) sig m, Has (State SourceMap) sig m, Has (Lift IO) sig m) =>
+  ImportDir Canonical ->
   ImportLoc Canonical ->
   m ()
-loadRec = undefined
+loadRec parent loc = do
+  canonicalLoc <- resolveImportLoc parent loc
+  srcMap <- get @SourceMap
+  case M.lookup canonicalLoc srcMap of
+    Just _ -> pure () -- already loaded - do nothing
+    Nothing -> do
+      src <- readLoc canonicalLoc
+      path <- locToFilePath canonicalLoc
+      case readTerm' defaultParserConfig src of
+        Left err -> throwError $ AssetNotLoaded (Data Script) path (CanNotParseMegaparsec err)
+        Right mt -> do
+          modify @SourceMap (M.insert canonicalLoc mt)
+          case mt of
+            Nothing -> pure ()
+            Just t -> do
+              let recImports = enumerateImports t
+              mapM_ (loadRec (importDir canonicalLoc)) recImports
 
--- loadRec loc = do
---   canonicalLoc <- resolveImportLocation loc
---   srcMap <- get @SourceMap
---   case M.lookup canonicalLoc srcMap of
---     Just _ -> pure () -- already loaded - do nothing
---     Nothing -> do
---       msrc <- sendIO $ readFileMay canonicalLoc
---       case msrc of
---         Nothing -> throwError $ AssetNotLoaded (Data Script) canonicalLoc (DoesNotExist File)
---         Just src -> case readTerm' defaultParserConfig (into @Text src) of
---           Left err -> throwError $ AssetNotLoaded (Data Script) canonicalLoc (CanNotParseMegaparsec err)
---           Right t -> do
---             modify @SourceMap (M.insert canonicalLoc t)
+enumerateImports :: Syntax -> [ImportLoc Canonical]
+enumerateImports = mapMaybe getImportLoc . universe . view sTerm
+ where
+  getImportLoc :: Term -> Maybe (ImportLoc Canonical)
+  getImportLoc (TImportIn loc _) = Just (canonicalizeImportLoc loc)
+  getImportLoc _ = Nothing
 
--- XXX enumerate imports and recursively load them.
--- XXX need to resolve imports relative to location of the file that imported them
--- XXX recursively load imports
+readLoc ::
+  (Has (Throw SystemFailure) sig m, Has (Lift IO) sig m) =>
+  ImportLoc Canonical ->
+  m Text
+readLoc loc = do
+  path <- locToFilePath loc
+  case importAnchor loc of
+    Web {} -> undefined -- XXX load URL with some kind of HTTP library
+    _ -> sendIO (readFileMayT path) >>= maybe (throwError (notFound path)) pure
+ where
+  notFound path = AssetNotLoaded (Data Script) path (DoesNotExist File)
