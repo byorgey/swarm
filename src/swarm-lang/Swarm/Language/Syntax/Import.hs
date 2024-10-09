@@ -16,10 +16,14 @@ module Swarm.Language.Syntax.Import (
   ImportDir,
   mkImportDir,
   withImportDir,
-  importAnchor,
+
+  -- ** Pre-defined dirs
+  homeDir,
+  currentDir,
 
   -- * ImportLoc
   ImportLoc (..),
+  importAnchor,
 
   -- * Canonicalization
   forgetCanonical,
@@ -29,7 +33,7 @@ module Swarm.Language.Syntax.Import (
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Coerce (coerce)
-import Data.Data
+import Data.Data (Data)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
@@ -53,6 +57,10 @@ data Anchor where
 ------------------------------------------------------------
 -- ImportDir
 
+-- XXX get rid of phantom type parameter --- just don't export
+-- constructor and export only a smart constructor that does the
+-- canonicalization
+
 -- | 'PathStatus' values are intended to be used as a phantom type
 --   parameter to track whether an import location has just been
 --   parsed or has been canonicalized, so we can't accidentally forget
@@ -61,10 +69,6 @@ data PathStatus = Parsed | Canonical
   deriving (Eq)
 
 -- | An import directory consists of an 'Anchor' together with a path.
---
---   Note that the path is stored in /reverse/ order, with the last
---   path component (the one closest to the file) stored first. This
---   makes it easier to process things like ".." parent components.
 --
 --   The decision to represent directories as a list of
 --   components, rather than using e.g. @FilePath@ or @OsPath@, is
@@ -84,37 +88,47 @@ data PathStatus = Parsed | Canonical
 data ImportDir (c :: PathStatus) = ImportDir Anchor [Text]
   deriving (Eq, Show, Data, Generic, FromJSON, ToJSON)
 
--- | Constructor for 'ImportDir' (we do not export the actual
---   constructor to preserve the invariant on the type index).
+-- | Convenient shortcut for the 'ImportDir' representing the user's
+--   home directory.
+homeDir :: ImportDir Canonical
+homeDir = ImportDir Home []
+
+-- | Convenient shortcut for the 'ImportDir' representing the current
+--   working directory.
+currentDir :: ImportDir Canonical
+currentDir = ImportDir (Local 0) []
+
+-- | Constructor for 'ImportDir Parsed'.  We do not export the actual
+--   constructor to preserve the invariant on the type index: the only
+--   way to get an 'ImportDir Canonical' is via 'canonicalizeImportDir'.
 mkImportDir :: Anchor -> [Text] -> ImportDir Parsed
 mkImportDir = ImportDir
 
--- | Destructor/eliminator for 'ImportDir'.
+-- | Destructor/eliminator for 'ImportDir'.  Since the constructor for
+--   'ImportDir' is not exported, this is the primary way to access
+--   the contents.
 withImportDir :: (Anchor -> [Text] -> r) -> ImportDir c -> r
 withImportDir f (ImportDir a p) = f a p
 
-importAnchor :: ImportDir Canonical -> Anchor
-importAnchor (ImportDir a _) = a
-
--- The Semigroup instance for 'ImportDir' interprets the second in the
--- context of the first.  If the second 'ImportDir' is not local
--- (/i.e./ if its anchor is 'Web', 'Home', or 'Absolute'), the first
--- is simply ignored and the second is returned unchanged.  If the
--- second 'ImportDir' is 'Local', a location is returned which uses
--- the first location as an initial anchor and then interprets the
--- second relative to that.
+-- | The Semigroup instance for 'ImportDir' interprets the second in
+--   the context of the first.  If the second 'ImportDir' is not local
+--   (/i.e./ if its anchor is 'Web', 'Home', or 'Absolute'), the first
+--   is simply ignored and the second is returned unchanged.  If the
+--   second 'ImportDir' is 'Local', computes a location which uses the
+--   first location as an initial anchor and then interprets the
+--   second relative to that.
 --
--- See https://github.com/dhall-lang/dhall-lang/blob/master/standard/imports.md#chaining-directories
--- for inspiration.
+--   See
+--   https://github.com/dhall-lang/dhall-lang/blob/master/standard/imports.md#chaining-directories
+--   for inspiration.
 instance Semigroup (ImportDir Canonical) where
   _ <> d@(ImportDir (Web {}) _) = d
   _ <> d@(ImportDir Home _) = d
   _ <> d@(ImportDir Absolute _) = d
-  ImportDir a p1 <> ImportDir (Local 0) p2 = ImportDir a (p2 <> p1)
-  ImportDir a (_ : ps1) <> ImportDir (Local n) p2 = ImportDir a ps1 <> ImportDir (Local (n - 1)) p2
-  ImportDir (Local m) [] <> ImportDir (Local n) p2 = ImportDir (Local (m + n)) p2
-  ImportDir a [] <> ImportDir (Local _) p2 = ImportDir a p2
+  ImportDir a p1 <> ImportDir (Local n) p2 = canonicalizeImportDir (ImportDir a (p1 ++ replicate n ".." ++ p2))
 
+-- | The identity 'ImportDir' is one with a local anchor and empty
+--   path component list.
 instance Monoid (ImportDir Canonical) where
   mempty = ImportDir (Local 0) []
 
@@ -125,6 +139,10 @@ instance Monoid (ImportDir Canonical) where
 --   consisting of a directory paired with a filename.
 data ImportLoc c = ImportLoc {importDir :: ImportDir c, importFile :: Text}
   deriving (Eq, Show, Data, Generic, FromJSON, ToJSON)
+
+-- | Get the 'Anchor' for an 'ImportLoc'.
+importAnchor :: ImportLoc Canonical -> Anchor
+importAnchor = withImportDir const . importDir
 
 ------------------------------------------------------------
 -- Canonicalization
