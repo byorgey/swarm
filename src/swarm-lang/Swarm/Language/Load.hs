@@ -11,6 +11,7 @@ module Swarm.Language.Load (
   dirToFilePath,
   locToFilePath,
   resolveImportLoc,
+  SourceMap,
   load,
   loadWith,
 ) where
