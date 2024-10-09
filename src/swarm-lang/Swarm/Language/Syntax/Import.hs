@@ -52,7 +52,7 @@ data Anchor where
   Home :: Anchor
   -- | Absolute, /i.e./ relative to the filesystem root.
   Absolute :: Anchor
-  deriving (Eq, Show, Data, Generic, FromJSON, ToJSON)
+  deriving (Eq, Ord, Show, Data, Generic, FromJSON, ToJSON)
 
 ------------------------------------------------------------
 -- ImportDir
@@ -86,7 +86,7 @@ data PathStatus = Parsed | Canonical
 --   turn it into an @'ImportDir' 'Canonical'@.  To pattern-match on
 --   an 'ImportDir', use 'withImportDir'.
 data ImportDir (c :: PathStatus) = ImportDir Anchor [Text]
-  deriving (Eq, Show, Data, Generic, FromJSON, ToJSON)
+  deriving (Eq, Ord, Show, Data, Generic, FromJSON, ToJSON)
 
 -- | Convenient shortcut for the 'ImportDir' representing the user's
 --   home directory.
@@ -138,7 +138,7 @@ instance Monoid (ImportDir Canonical) where
 -- | A location from which to import a file containing Swarm code,
 --   consisting of a directory paired with a filename.
 data ImportLoc c = ImportLoc {importDir :: ImportDir c, importFile :: Text}
-  deriving (Eq, Show, Data, Generic, FromJSON, ToJSON)
+  deriving (Eq, Ord, Show, Data, Generic, FromJSON, ToJSON)
 
 -- | Get the 'Anchor' for an 'ImportLoc'.
 importAnchor :: ImportLoc Canonical -> Anchor

@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternSynonyms #-}
 
 -- |
 -- SPDX-License-Identifier: BSD-3-Clause
@@ -24,13 +25,12 @@ import Data.Map (Map)
 import Data.Map qualified as M
 import Data.Maybe (mapMaybe)
 import Data.Text (Text)
-import Data.Text qualified as T
 import Swarm.Failure (Asset (..), AssetData (..), Entry (..), LoadingFailure (..), SystemFailure (AssetNotLoaded))
 import Swarm.Language.Parser (readTerm')
 import Swarm.Language.Parser.Core (defaultParserConfig)
-import Swarm.Language.Syntax.Import (Anchor (..), ImportDir, ImportLoc (..), PathStatus (..), currentDir, importAnchor, withImportDir)
-import Swarm.Language.Syntax.Pattern (Syntax, TImportIn, Term, sTerm)
-import Swarm.Util (readFileMay, readFileMayT)
+import Swarm.Language.Syntax.Import (Anchor (..), ImportDir, ImportLoc (..), PathStatus (..), canonicalizeImportLoc, currentDir, importAnchor, withImportDir)
+import Swarm.Language.Syntax.Pattern (Syntax, sTerm, pattern TImportIn)
+import Swarm.Util (readFileMayT)
 import System.Directory (doesFileExist, getCurrentDirectory, getHomeDirectory)
 import System.FilePath (joinPath, splitPath, (</>))
 import Witch (into)
@@ -70,7 +70,7 @@ locToFilePath (ImportLoc d f) = do
 doesLocationExist :: (Has (Lift IO) sig m) => ImportLoc Canonical -> m Bool
 doesLocationExist loc = do
   fp <- locToFilePath loc
-  case importAnchor (importDir loc) of
+  case importAnchor loc of
     Web {} -> pure True
     _ -> sendIO $ doesFileExist fp
 
@@ -162,10 +162,10 @@ loadRec parent loc = do
               let recImports = enumerateImports t
               mapM_ (loadRec (importDir canonicalLoc)) recImports
 
+-- | Enumerate all the @import@ expressions in an AST.
 enumerateImports :: Syntax -> [ImportLoc Canonical]
 enumerateImports = mapMaybe getImportLoc . universe . view sTerm
  where
-  getImportLoc :: Term -> Maybe (ImportLoc Canonical)
   getImportLoc (TImportIn loc _) = Just (canonicalizeImportLoc loc)
   getImportLoc _ = Nothing
 
