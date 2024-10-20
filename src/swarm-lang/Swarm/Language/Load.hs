@@ -11,7 +11,12 @@ module Swarm.Language.Load (
   dirToFilePath,
   locToFilePath,
   resolveImportLoc,
+  Module' (..),
+  Module,
+  TModule,
+  SourceMap',
   SourceMap,
+  TSourceMap,
   load,
   loadWith,
 ) where
@@ -29,8 +34,10 @@ import Data.Maybe (mapMaybe)
 import Swarm.Failure (Asset (..), AssetData (..), Entry (..), LoadingFailure (..), SystemFailure (AssetNotLoaded))
 import Swarm.Language.Parser (readTerm')
 import Swarm.Language.Parser.Core (defaultParserConfig)
+import Swarm.Language.Syntax.AST (Syntax')
 import Swarm.Language.Syntax.Import (Anchor (..), ImportDir, ImportLoc (..), currentDir, importAnchor, withImportDir)
 import Swarm.Language.Syntax.Pattern (Syntax, sTerm, pattern TImportIn)
+import Swarm.Language.Types (Polytype)
 import Swarm.Util (readFileMayT)
 import System.Directory (doesFileExist, getCurrentDirectory, getHomeDirectory)
 import System.FilePath (joinPath, splitPath, (</>))
@@ -99,10 +106,18 @@ resolveImportLoc parent (ImportLoc d f) = do
   loc' = ImportLoc d' f
   loc'sw = ImportLoc d' (f <> ".sw")
 
--- | A SourceMap associates canonical 'ImportLocation's to parsed
---   ASTs.  There's no particular reason to require an imported module
---   to be nonempty, so we allow it.
-type SourceMap = Map ImportLoc (Maybe Syntax)
+-- | A 'Module' is simply a (possibly empty) AST, along with a list of
+--   canonicalized imports.
+data Module' ty = Module (Maybe (Syntax' ty)) [ImportLoc]
+
+type Module = Module' ()
+type TModule = Module' Polytype
+
+-- | A SourceMap associates canonical 'ImportLocation's to modules.
+type SourceMap' ty = Map ImportLoc (Module' ty)
+
+type SourceMap = SourceMap' ()
+type TSourceMap = SourceMap' Polytype
 
 -- XXX copied this code from the code for executing Run. Do we need to
 -- deal with loading things from standard swarm script dirs, for
@@ -137,26 +152,31 @@ loadWith srcMap = execState srcMap . loadRec currentDir
 
 -- | Given a parent directory relative to which any local imports
 --   should be interpreted, load an import and all its imports,
---   transitively.
+--   transitively.  Also return a canonicalized version of the import
+--   location.
+--
+--   XXX check for import cycles!  They don't pose a problem for
+--   loading per se, but they will pose a problem for typechecking
+--   later, and we might as well detect the issue now.
 loadRec ::
   (Has (Throw SystemFailure) sig m, Has (State SourceMap) sig m, Has (Lift IO) sig m) =>
   ImportDir ->
   ImportLoc ->
-  m ()
+  m ImportLoc
 loadRec parent loc = do
   canonicalLoc <- resolveImportLoc parent loc
   srcMap <- get @SourceMap
   case M.lookup canonicalLoc srcMap of
-    Just _ -> pure () -- already loaded - do nothing
+    Just _ -> pure () -- Already loaded - do nothing
     Nothing -> do
-      -- not loaded yet
       mt <- readLoc canonicalLoc -- read it from network/disk
-      modify @SourceMap (M.insert canonicalLoc mt)
-      case mt of
-        Nothing -> pure ()
-        Just t -> do
-          let recImports = enumerateImports t
-          mapM_ (loadRec (importDir canonicalLoc)) recImports
+      -- Recursively load anything it imports
+      let recImports = maybe [] enumerateImports mt
+      canonicalImports <- mapM (loadRec (importDir canonicalLoc)) recImports
+      -- Finally, record it in the SourceMap
+      modify @SourceMap (M.insert canonicalLoc $ Module mt canonicalImports)
+
+  pure canonicalLoc
 
 -- | Enumerate all the @import@ expressions in an AST.
 enumerateImports :: Syntax -> [ImportLoc]
