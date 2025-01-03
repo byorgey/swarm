@@ -1223,6 +1223,17 @@
       all the nearby actors other than oneself.
   properties: [pickable]
   capabilities: [meet, meetAll]
+- name: atlas
+  display:
+    attr: device
+    char: 'a'
+  description:
+    - |
+      An atlas enables the `waypoint` command: `waypoint : Text -> Int -> Cmd (Int * (Int * Int))`.
+      Waypoints are keyed by name and index; the count of waypoints with the same name will be returned
+      along with the current index's location.
+  properties: [pickable]
+  capabilities: [waypoint]
 - name: GPS receiver
   display:
     attr: device
