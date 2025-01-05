@@ -44,6 +44,7 @@ import Swarm.Game.Location
 import Swarm.Game.Robot
 import Swarm.Game.Robot.Activity
 import Swarm.Game.Robot.Concrete
+import Swarm.Game.Scenario
 import Swarm.Game.State
 import Swarm.Game.State.Robot
 import Swarm.Game.State.Substate
@@ -319,11 +320,12 @@ mkLibraryEntries c =
         , rowLog = strWidget $ pure rLog
         }
    where
+    aMap = maybe mempty (view (scenarioLandscape . scenarioCosmetics) . fst) $ c ^. gameplay . scenarioRef
     nameWidget = WithWidth (2 + T.length nameTxt) w
      where
       w =
         hBox
-          [ renderDisplay (r ^. robotDisplay)
+          [ renderDisplay aMap (r ^. robotDisplay)
           , highlightSystem . txt $ " " <> nameTxt
           ]
       nameTxt = r ^. robotName

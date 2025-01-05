@@ -20,6 +20,8 @@ import Data.Set qualified as Set
 import Data.Text qualified as T
 import Data.Vector qualified as V
 import Swarm.Game.Entity (Entity, entityDisplay)
+import Swarm.Game.Entity.Cosmetic
+import Swarm.Game.Scenario
 import Swarm.Game.Scenario.Topography.Area
 import Swarm.Game.Scenario.Topography.Grid
 import Swarm.Game.Scenario.Topography.Structure.Named qualified as Structure
@@ -32,6 +34,7 @@ import Swarm.Game.State.Substate (structureRecognition)
 import Swarm.Language.Syntax.Direction (directionJsonModifier)
 import Swarm.TUI.Model.Dialog.Structure
 import Swarm.TUI.Model.Name
+import Swarm.TUI.Model.UI.Gameplay
 import Swarm.TUI.View.Attribute.Attr
 import Swarm.TUI.View.CellDisplay
 import Swarm.TUI.View.Shared (tabControlFooter)
@@ -40,8 +43,12 @@ import Swarm.Util (commaList)
 
 -- | Render a two-pane widget with structure selection on the left
 -- and single-structure details on the right.
-structureWidget :: GameState -> StructureInfo b Entity -> Widget n
-structureWidget gs s =
+structureWidget ::
+  M.Map WorldAttr PreservableColor ->
+  GameState ->
+  StructureInfo b Entity ->
+  Widget n
+structureWidget aMap gs s =
   vBox
     [ hBox
         [ headerItem "Name" $ Structure.getStructureName theName
@@ -107,7 +114,7 @@ structureWidget gs s =
 
   showCount (e, c) =
     hBox
-      [ drawLabelledEntityName e
+      [ drawLabelledEntityName aMap e
       , txt $
           T.unwords
             [ ":"
@@ -118,7 +125,7 @@ structureWidget gs s =
   theName = Structure.name theNamedGrid
   cells = getRows $ Grid $ entityProcessedGrid s
 
-  renderOneCell = maybe (txt " ") (renderDisplay . view entityDisplay)
+  renderOneCell = maybe (txt " ") (renderDisplay aMap . view entityDisplay)
 
 makeListWidget :: [StructureInfo b a] -> BL.List Name (StructureInfo b a)
 makeListWidget structureDefinitions =
@@ -126,9 +133,9 @@ makeListWidget structureDefinitions =
 
 renderStructuresDisplay ::
   GameState ->
-  StructureDisplay ->
+  UIGameplay ->
   Widget Name
-renderStructuresDisplay gs structureDisplay =
+renderStructuresDisplay gs uig =
   vBox
     [ hBox
         [ leftSide
@@ -137,6 +144,9 @@ renderStructuresDisplay gs structureDisplay =
     , tabControlFooter
     ]
  where
+  aMap = maybe mempty (view (scenarioLandscape . scenarioCosmetics) . fst) $ uig ^. scenarioRef
+
+  structureDisplay = uig ^. uiDialogs . uiStructure
   lw = _structurePanelListWidget structureDisplay
   fr = _structurePanelFocus structureDisplay
   leftSide =
@@ -159,7 +169,7 @@ renderStructuresDisplay gs structureDisplay =
   structureElaboration =
     clickable (StructureWidgets StructureSummary)
       . maybeScroll ModalViewport
-      . maybe emptyWidget (padAll 1 . padRight (Pad 1) . highlightIfFocused . structureWidget gs . snd)
+      . maybe emptyWidget (padAll 1 . padRight (Pad 1) . highlightIfFocused . structureWidget aMap gs . snd)
       $ BL.listSelectedElement lw
 
 drawSidebarListItem ::
