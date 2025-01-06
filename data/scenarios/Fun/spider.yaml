@@ -1,0 +1,46 @@
+version: 1
+name: Spiders
+description: |
+  Spiders catching prey by spinning webs
+creative: true
+robots:
+  - name: base
+    dir: north
+    loc: [5, 0]
+  - name: spider
+    display:
+      invisible: false
+      attr: blue
+    dir: north
+    system: true
+    loc: [0, 0]
+    program: |
+      run "scenarios/Fun/_spider/spider.sw"
+  - name: monkey
+    display:
+      invisible: false
+      attr: red
+    dir: north
+    system: true
+    loc: [0, 0]
+    program: |
+      run "scenarios/Fun/_spider/monkey.sw"
+structures:
+  - name: cocoon
+    recognize: [north]
+    structure:
+      mask: '.'
+      palette:
+        'b': [grass, mountain]
+      map: |
+        bbb
+        b.b
+        bbb
+known: [tree]
+world:
+  dsl: |-
+    overlay
+      [ {grass}
+      , mask ((hash % 200) == 0) {flower}
+      , mask (((hash+1) % 200) == 0) {tree}
+      ]
