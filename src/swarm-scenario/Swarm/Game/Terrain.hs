@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- |
 -- SPDX-License-Identifier: BSD-3-Clause
@@ -37,7 +38,7 @@ import Data.Yaml
 import GHC.Generics (Generic)
 import Swarm.Failure
 import Swarm.Game.Display
-import Swarm.Game.Entity.Cosmetic (WorldAttr (..))
+import Swarm.Game.Entity.Cosmetic
 import Swarm.ResourceLoading (getDataFileNameSafe)
 import Swarm.Util (enumeratedMap, quote)
 import Swarm.Util.Effect (withThrow)
@@ -88,7 +89,17 @@ data TerrainObj = TerrainObj
 
 promoteTerrainObjects :: [TerrainItem] -> [TerrainObj]
 promoteTerrainObjects =
-  map (\(TerrainItem n a d) -> TerrainObj n d $ defaultTerrainDisplay (AWorld a))
+  map f
+ where
+  f (TerrainItem n a d) =
+    TerrainObj n d $
+      (defaultTerrainDisplay (AWorld a))
+        { _backgroundSources =
+            BackgroundSource
+              { terrainBgAttr = Just . WorldAttr . T.unpack $ getTerrainWord n
+              , entityBgAttr = Nothing
+              }
+        }
 
 invertedIndexMap :: IntMap TerrainObj -> Map TerrainType Int
 invertedIndexMap = M.fromList . map (first terrainName . swap) . IM.toList

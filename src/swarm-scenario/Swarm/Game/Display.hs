@@ -17,6 +17,7 @@ module Swarm.Game.Display (
   readAttribute,
   Display,
   ChildInheritance (..),
+  BackgroundSource (..),
 
   -- ** Fields
   defaultChar,
@@ -27,6 +28,8 @@ module Swarm.Game.Display (
   displayPriority,
   invisible,
   childInheritance,
+  backgroundSources,
+  _backgroundSources,
 
   -- ** Rendering
   displayChar,
@@ -54,6 +57,7 @@ import Data.Text qualified as T
 import Data.Yaml
 import GHC.Generics (Generic)
 import Graphics.Text.Width
+import Swarm.Game.Entity.Cosmetic
 import Swarm.Language.Syntax.Direction (AbsoluteDir (..), Direction (..))
 import Swarm.Util (applyWhen, maxOn, quote)
 import Swarm.Util.Lens (makeLensesNoSigs)
@@ -90,6 +94,19 @@ data ChildInheritance
   | DefaultDisplay
   deriving (Eq, Ord, Show, Generic, Hashable)
 
+data BackgroundSource a = BackgroundSource
+  { terrainBgAttr :: Maybe a
+  , entityBgAttr :: Maybe a
+  }
+  deriving (Eq, Show, Functor, Foldable, Traversable, Generic, Hashable)
+
+instance Semigroup (BackgroundSource a) where
+  BackgroundSource x1 y1 <> BackgroundSource x2 y2 =
+    BackgroundSource (x1 <|> x2) (y1 <|> y2)
+
+instance Monoid (BackgroundSource a) where
+  mempty = BackgroundSource Nothing Nothing
+
 -- | A record explaining how to display an entity in the TUI.
 data Display = Display
   { _defaultChar :: Char
@@ -100,14 +117,18 @@ data Display = Display
   , _displayPriority :: Priority
   , _invisible :: Bool
   , _childInheritance :: ChildInheritance
+  , _backgroundSources :: BackgroundSource WorldAttr
   }
-  deriving (Eq, Ord, Show, Generic, Hashable)
+  deriving (Eq, Show, Generic, Hashable)
 
 instance Semigroup Display where
   d1 <> d2
     | _invisible d1 = d2
     | _invisible d2 = d1
-    | otherwise = maxOn _displayPriority d1 d2
+    | otherwise =
+        (maxOn _displayPriority d1 d2)
+          { _backgroundSources = _backgroundSources d1 <> _backgroundSources d2
+          }
 
 makeLensesNoSigs ''Display
 
@@ -140,6 +161,9 @@ invisible :: Lens' Display Bool
 -- | For robots, whether children of this inherit the parent's display
 childInheritance :: Lens' Display ChildInheritance
 
+-- | Background color
+backgroundSources :: Lens' Display (BackgroundSource WorldAttr)
+
 instance FromJSON Display where
   parseJSON v = runE (parseJSONE v) (defaultEntityDisplay ' ')
 
@@ -157,6 +181,7 @@ instance FromJSONE Display Display where
     liftE $ do
       let _defaultChar = c
           _boundaryOverride = Nothing
+          _backgroundSources = mempty
       _orientationMap <- v .:? "orientationMap" .!= dOM
       _curOrientation <- v .:? "curOrientation" .!= (defD ^. curOrientation)
       _displayAttr <- (v .:? "attr") .!= (defD ^. displayAttr)
@@ -222,6 +247,7 @@ defaultEntityDisplay c =
     , _displayPriority = 1
     , _invisible = False
     , _childInheritance = Inherit
+    , _backgroundSources = mempty
     }
 
 -- | Construct a default robot display for a given orientation, with
@@ -247,6 +273,7 @@ defaultRobotDisplay =
     , _displayPriority = 10
     , _invisible = False
     , _childInheritance = Inherit
+    , _backgroundSources = mempty
     }
 
 instance Monoid Display where
