@@ -1,0 +1,152 @@
+version: 1
+name: Sneak
+author: Karl Ostmo
+description: |
+  Catch the pig
+creative: false
+seed: 0
+attrs:
+  - name: pink
+    fg: "#ffaaaa"
+objectives:
+  - id: catch_pig
+    teaser: Catch the pig
+    goal:
+      - |
+        Get close to the "pig".
+      - |
+        Observe its reactions to avoid scaring it off.
+        This skittish porker does not abide a direct approach.
+    condition: |
+      def abs = \n. if (n < 0) {-n} {n} end
+
+      def dist : int * int -> int * int -> int = \l1. \l2.
+          let xDelta = fst l1 - fst l2 in
+          let yDelta = snd l1 - snd l2 in
+          abs xDelta + abs yDelta;
+          end;
+
+      baseLoc <- as base {whereami};
+      myLoc <- whereami;
+      return $ dist baseLoc myLoc <= 1;
+  - teaser: Stuffed
+    goal:
+      - Observe the pig eat 100 clovers
+    optional: true
+    hidden: true
+    condition: |
+      pig <- robotnamed "pig";
+      as pig {
+        c <- count "clover";
+        return $ c >= 100;
+      };
+robots:
+  - name: base
+    dir: [0, 1]
+    devices:
+      - antenna
+      - binoculars
+      - branch predictor
+      - calculator
+      - clock
+      - comparator
+      - compass
+      - counter
+      - dictionary
+      - grabber
+      - hearing aid
+      - lambda
+      - logger
+      - scanner
+      - smeller
+      - strange loop
+      - treads
+      - workbench
+  - name: pig
+    system: true
+    dir: [0, 1]
+    display:
+      char: 'P'
+      invisible: false
+      attr: pink
+    devices:
+      - compass
+    program: |
+      run "scenarios/Challenges/_sneak/prey.sw"
+solution: |
+   run "scenarios/Challenges/_sneak/solution.sw"
+entities:
+  - name: smeller
+    display:
+      char: 's'
+    description:
+      - Can detect scents, including pheromones
+    properties: [known, portable]
+    capabilities: [detectdistance]
+  - name: binoculars
+    display:
+      attr: silver
+      char: 'B'
+    description:
+    - Allows one to "scout" for other robots
+    properties: [known, portable]
+    capabilities: [recondir]
+  - name: mud
+    display:
+      char: 'm'
+      attr: 'wood'
+    description:
+      - Sticky, impassible terrain.
+    properties: [known, unwalkable]
+  - name: sty
+    display:
+      char: 'M'
+      attr: 'wood'
+    description:
+      - Muddy pig sty.
+    properties: [known, unwalkable]
+  - name: clover
+    display:
+      char: '*'
+      attr: 'gold'
+    growth: [400, 700]
+    description:
+      - Tasty piggy treats
+    properties: [known, growable]
+known: []
+world:
+  default: [grass]
+  upperleft: [0, 0]
+  offset: false
+  palette:
+    'B': [grass, null, base]
+    'P': [grass, null, pig]
+    'm': [dirt, sty]
+    't': [dirt, mud]
+    'c': [grass, clover]
+    '.': [grass]
+  map: |
+    .................................................
+    .................................................
+    ...B.............................................
+    .................................................
+    .................................................
+    .............................................ttt.
+    .........................................c..tmmmt
+    ................................c..........tmmmmt
+    ...................................cc..c...tmmmmt
+    .............................c.....c.c.....tmmmmt
+    ....................................c.....ctmmmmt
+    .................................c..........tmmmt
+    ............................c..........P....tmmmt
+    .................................c.c........tmmt.
+    ................................c............tt..
+    .................................................
+    ..........................tttttttttttttttt.......
+    .......................tttmmmmmmmmmmmmmmmmtttttt.
+    ....................tttmmmmmmmmmmmmmmmmmmmmmmmmt.
+    ...................tmmmmmmmmmmmmmmmmmmmmmmmmmmmt.
+    ....................ttmmmmmmmmmmmmmmmmmmmmmmmmt..
+    ......................tttttttttmmmmmmmmmtttttt...
+    ...............................ttttttttt.........
+    
