@@ -76,6 +76,7 @@
       "has"
       "equipped"
       "count"
+      "act"
       "drill"
       "use"
       "build"

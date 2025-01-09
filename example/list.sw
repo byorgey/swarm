@@ -184,20 +184,20 @@ def index: Int -> ListI -> Int
 end
 
 def for: ∀ a. Int -> Int -> (Int -> Cmd a) -> Cmd Unit 
-  = \s. \e. \act.
-  if (s == e) {} {act s; for (s + 1) e act}
+  = \s. \e. \f.
+  if (s == e) {} {f s; for (s + 1) e f}
 end
 
 def for_each_i: Int -> ListI -> (Int -> Int -> Cmd Unit) -> Cmd Unit 
-  = \i. \xs. \act.
+  = \i. \xs. \f.
   if (xs == nil) {} {
-    let ht = headTail xs in act i (fst ht); for_each_i (i + 1) (snd ht) act
+    let ht = headTail xs in f i (fst ht); for_each_i (i + 1) (snd ht) f
   }
 end
 
 def for_each: ListI -> (Int -> Cmd Unit) -> Cmd Unit 
-  = \xs. \act.
-  for_each_i 0 xs (\i. act)
+  = \xs. \f.
+  for_each_i 0 xs (\i. f)
 end
 
 
@@ -207,9 +207,9 @@ end
 def assert = \b. \m. if b {} {log "FAIL:"; fail m} end
 
 def assert_eq 
-  = \exp. \act. \m.
-  if (exp == act) {} {
-    log ("FAIL: expected " ++ format exp ++ " actual " ++ format act);
+  = \exp. \actual. \m.
+  if (exp == actual) {} {
+    log ("FAIL: expected " ++ format exp ++ " actual " ++ format actual);
     fail m
   }
 end

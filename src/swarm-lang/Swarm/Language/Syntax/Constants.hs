@@ -112,6 +112,8 @@ data Const
     Equipped
   | -- | Sense how many of a certain item we have.
     Count
+  | -- | Act upon an entity.
+    Act
   | -- | Drill through an entity.
     Drill
   | -- | Use an entity with another.
@@ -621,6 +623,11 @@ constInfo c = case c of
         (Set.singleton $ Mutation $ RobotChange BehaviorChange)
         "Reprogram another robot with a new command."
       $ ["The other robot has to be nearby and idle."]
+  Act ->
+    command 1 long . doc (Set.fromList [Mutation EntityChange, Mutation $ RobotChange InventoryChange]) "Act upon an entity." $
+      [ "This command transforms an entity in the world using a device."
+      , "It will automatically `use` the appropriate device required by a recipe that takes the target entity as input."
+      ]
   Drill ->
     command 1 long
       . doc

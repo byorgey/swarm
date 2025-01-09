@@ -525,9 +525,9 @@ end
 def assert = \i. \b. \m. if b {log $ indent i ++ "OK: " ++ m} {log "FAIL:"; fail m} end
 
 def assert_eq 
-  = \i. \exp. \act. \m.
-  if (exp == act) {log $ indent i ++ "OK: " ++ m} {
-    log (indent i ++ "FAIL: expected " ++ format exp ++ " actual " ++ format act);
+  = \i. \exp. \actual. \m.
+  if (exp == actual) {log $ indent i ++ "OK: " ++ m} {
+    log (indent i ++ "FAIL: expected " ++ format exp ++ " actual " ++ format actual);
     fail m
   }
 end

@@ -862,6 +862,17 @@
     - An extremely efficient solar panel, capable of generating sufficient power from ambient starlight alone. A robot powered by one of these can operate any time, including on cloudy days and at night.
   capabilities: [power]
   properties: [pickable]
+- name: agency card
+  display:
+    attr: device
+    char: 'A'
+  description:
+    - Become a card-carrying member of the Nice Roboticists Agency.
+    - Philosophically speaking, this "agency" grants a robot the capacity to `act`.
+    - |
+      `act : Dir -> Cmd Unit` modifies an entity in said direction.
+  capabilities: [act]
+  properties: [pickable]
 - name: drill
   display:
     attr: device
