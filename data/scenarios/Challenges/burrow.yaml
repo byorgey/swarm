@@ -1,0 +1,75 @@
+version: 1
+name: Burrow
+author: Karl Ostmo
+description: |
+  Encourage a creature into its burrow
+creative: false
+seed: 4
+attrs:
+  - name: clay
+    fg: "#ffff99"
+    bg: "#b15928"
+objectives:
+  - teaser: Something
+    goal:
+      - |
+        Something
+    condition: |
+      return false
+robots:
+  - name: base
+    dir: [1, 0]
+    devices:
+      - 3D printer
+      - blueprint
+      - branch predictor
+      - ADT calculator
+      - clock
+      - comparator
+      - compass
+      - counter
+      - dictionary
+      - drill
+      - fast grabber
+      - GPS receiver
+      - harvester
+      - hearing aid
+      - keyboard
+      - lambda
+      - logger
+      - net
+      - rolex
+      - scanner
+      - strange loop
+      - toolkit
+      - treads
+      - welder
+      - workbench
+solution: |
+  run "scenarios/Challenges/_burrow/solution.sw"
+entities:
+  - name: clay
+    display:
+      attr: clay
+      char: '*'
+    description:
+      - clay
+    properties: [known, unwalkable, pickable]
+known: [tree, rock, flower, boulder]
+world:
+  dsl: |
+    let
+      lakeNoise = perlin (seed + 1) 1 0.25 0.0
+    in
+      overlay
+      [ {grass}
+      , mask (lakeNoise > 0.4 && lakeNoise <= 0.9) {clay}
+      ]
+  upperleft: [0, 0]
+  offset: false
+  palette:
+    'B': [grass, erase, base]
+    '.': [grass, erase]
+  map: |
+    B..
+    ...

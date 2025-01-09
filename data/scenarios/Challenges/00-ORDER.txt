@@ -8,6 +8,7 @@ word-search.yaml
 gopher.yaml
 ice-cream.yaml
 combo-lock.yaml
+burrow.yaml
 hanoi.yaml
 hackman.yaml
 lights-out.yaml
