@@ -1313,7 +1313,8 @@ drawRecipe me inv (Recipe ins outs reqs time _weight) =
     hBox
       [ padRight (Pad 1) $ str (show n) -- how many?
       , fmtEntityName missing ingr -- name of the input
-      , padLeft (Pad 1) $ -- a connecting line:   ─────┬
+      , padLeft (Pad 1) $ -- a connecting line:   ─────┬ -- a connecting line:   ─────┬
+      -- a connecting line:   ─────┬
           hBorder
             <+> ( joinableBorder (Edges (i /= 0) (i /= inLen - 1) True False) -- ...maybe plus vert ext:   │
                     <=> if i /= inLen - 1
@@ -1456,13 +1457,28 @@ renderREPLPrompt focus theRepl = ps1 <+> replE
       Right () -> txt t
       Left NoLoc -> withAttr redAttr (txt t)
       Left (SrcLoc s e) | s == e || s >= T.length t -> withAttr redAttr (txt t)
+      -- TODO: ABSOLUTE HELL OF BUGS, NEEDS LINE NUMBERS
       Left (SrcLoc s e) ->
         let (validL, (invalid, validR)) = T.splitAt (e - s) <$> T.splitAt s t
-         in hBox [txt validL, withAttr redAttr (txt invalid), txt validR]
+            (validLs, validLl) = fromMaybe ([], validL) . unsnoc $ T.splitOn "\n" validL
+            (validRl, validRs) = fromMaybe (validR, []) . uncons $ T.splitOn "\n" validR
+            redLines = case T.lines invalid of
+              [] -> [withAttr redAttr $ txt validLl <+> txt validRl] -- should not happen
+              [i1] -> [txt validLl <+> withAttr redAttr (txt i1) <+> txt validRl]
+              [i1, i2] ->
+                [ txt validLl <+> withAttr redAttr (txt i1)
+                , withAttr redAttr (txt i2) <+> txt validRl
+                ]
+              (i1 : iss) ->
+                [ txt validLl <+> withAttr redAttr (txt i1)
+                , withAttr redAttr (txt . T.unlines $ init iss)
+                , withAttr redAttr (txt $ last iss) <+> txt validRl
+                ]
+         in vBox $ map txt validLs <> redLines <> map txt validRs
   ps1 = replPromptAsWidget (T.concat $ getEditContents replEditor) prompt
   replE =
     renderEditor
-      (vBox . map color)
+      (color . T.unlines)
       (focusGetCurrent focus `elem` [Nothing, Just (FocusablePanel REPLPanel), Just REPLInput])
       replEditor
 

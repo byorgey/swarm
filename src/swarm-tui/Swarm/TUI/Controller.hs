@@ -602,6 +602,9 @@ handleREPLEventTyping = \case
     -- On any other key event, jump to the bottom of the REPL then handle the event
     vScrollToEnd replScroll
     case k of
+      MetaChar 'm' ->
+        Brick.zoom (uiState . uiGameplay . uiREPL . replPromptEditor) $
+          handleEditorEvent (Key V.KEnter)
       Key V.KEnter -> do
         s <- get
         let theRepl = s ^. uiState . uiGameplay . uiREPL
@@ -786,8 +789,8 @@ validateREPLForm s =
           let env = s ^. gameState . baseEnv
               (theType, errSrcLoc) = case readTerm' defaultParserConfig uinput of
                 Left err ->
-                  let ((_y1, x1), (_y2, x2), _msg) = showErrorPos err
-                   in (Nothing, Left (SrcLoc x1 x2))
+                  let ((y1, x1), (y2, x2), _msg) = showErrorPos err
+                   in (Nothing, Left (SrcLoc (y2x y1 + x1) (y2x y2 + x2)))
                 Right Nothing -> (Nothing, Right ())
                 Right (Just theTerm) -> case processParsedTerm' env theTerm of
                   Right t -> (Just (t ^. sType), Right ())
@@ -799,6 +802,8 @@ validateREPLForm s =
  where
   uinput = s ^. uiState . uiGameplay . uiREPL . replPromptText
   replPrompt = s ^. uiState . uiGameplay . uiREPL . replPromptType
+  uLineCounts = T.length <$> T.lines uinput
+  y2x n = n + sum (take n uLineCounts)
 
 -- | Update our current position in the REPL history.
 adjReplHistIndex :: TimeDir -> AppState -> AppState

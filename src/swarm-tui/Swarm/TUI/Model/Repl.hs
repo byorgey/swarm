@@ -330,7 +330,7 @@ data REPLState = REPLState
   }
 
 newREPLEditor :: Text -> Editor Text Name
-newREPLEditor t = applyEdit gotoEnd $ editorText REPLInput (Just 1) t
+newREPLEditor t = applyEdit gotoEnd $ editorText REPLInput (Just 5) t
  where
   ls = T.lines t
   pos = (length ls - 1, T.length (last ls))
@@ -361,7 +361,7 @@ replPromptEditor :: Lens' REPLState (Editor Text Name)
 replPromptText :: Lens' REPLState Text
 replPromptText = lens g s
  where
-  g r = r ^. replPromptEditor . to getEditContents . to T.concat
+  g r = r ^. replPromptEditor . to getEditContents . to T.unlines
   s r t = r & replPromptEditor .~ newREPLEditor t
 
 -- | Whether the prompt text is a valid 'Swarm.Language.Syntax.Term'.
