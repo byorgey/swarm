@@ -1,0 +1,72 @@
+version: 1
+name: Sliding gate
+author: Karl Ostmo
+description: |
+  Bring the flower back.
+creative: false
+seed: 0
+objectives:
+  - goal:
+      - Place the flower on the target.
+      - You may have to start over if you get stuck.
+    condition: |
+      as base {
+        teleport self (0,0);
+        ishere "flower";
+      };
+robots:
+  - name: base
+    dir: [1, 0]
+    display:
+      attr: gold
+    devices:
+      - branch predictor
+      - ADT calculator
+      - comparator
+      - compass
+      - dictionary
+      - dozer blade
+      - grabber
+      - keyboard
+      - lambda
+      - logger
+      - scanner
+      - strange loop
+      - treads
+      - workbench
+solution: |
+  noop;
+entities:
+  - name: curb
+    display:
+      char: '█'
+      attr: rock
+    description:
+      - Barrier that impedes pushing
+    properties: [known]
+  - name: monolith
+    display:
+      char: '@'
+    description:
+      - Pushable rock
+    properties: [known, unwalkable, pickable]
+known: [mountain, water, flower]
+world:
+  default: [grass, water]
+  upperleft: [-1, 1]
+  offset: false
+  palette:
+    'B': [grass, null, base]
+    '.': [grass]
+    'x': [grass, curb]
+    '@': [grass, monolith]
+    'A': [grass, mountain]
+    '*': [grass, flower]
+  map: |-
+    AAAAAA.AAAAA
+    AAAAAA.AAAAA
+    AAAAAA.AAAAA
+    B...x@.x....
+    AAAAA.AAAAAA
+    AAAAA.AAAAAA
+    AAAAA.AAAAAA
