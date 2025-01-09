@@ -25,6 +25,7 @@ module Swarm.Game.Display (
   boundaryOverride,
   displayAttr,
   displayPriority,
+  displayObscured,
   invisible,
   childInheritance,
 
@@ -98,6 +99,7 @@ data Display = Display
   , _boundaryOverride :: Maybe Char
   , _displayAttr :: Attribute
   , _displayPriority :: Priority
+  , _displayObscured :: Bool
   , _invisible :: Bool
   , _childInheritance :: ChildInheritance
   }
@@ -134,6 +136,11 @@ displayAttr :: Lens' Display Attribute
 --   on top of lower.
 displayPriority :: Lens' Display Priority
 
+-- | True for static "fog of war" overlay. This field is a workaround to allow
+-- robot-occupied cells to take on ambient background; it distinguishes
+-- displays that have an adoptable background from displays that do not.
+displayObscured :: Lens' Display Bool
+
 -- | Whether the entity is currently invisible.
 invisible :: Lens' Display Bool
 
@@ -157,6 +164,7 @@ instance FromJSONE Display Display where
     liftE $ do
       let _defaultChar = c
           _boundaryOverride = Nothing
+          _displayObscured = False
       _orientationMap <- v .:? "orientationMap" .!= dOM
       _curOrientation <- v .:? "curOrientation" .!= (defD ^. curOrientation)
       _displayAttr <- (v .:? "attr") .!= (defD ^. displayAttr)
@@ -220,6 +228,7 @@ defaultEntityDisplay c =
     , _boundaryOverride = Nothing
     , _displayAttr = AEntity
     , _displayPriority = 1
+    , _displayObscured = False
     , _invisible = False
     , _childInheritance = Inherit
     }
@@ -245,6 +254,7 @@ defaultRobotDisplay =
     , _curOrientation = Nothing
     , _displayAttr = ARobot
     , _displayPriority = 10
+    , _displayObscured = False
     , _invisible = False
     , _childInheritance = Inherit
     }
