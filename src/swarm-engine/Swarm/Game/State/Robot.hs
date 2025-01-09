@@ -379,7 +379,12 @@ wakeWatchingRobots myID currentTick loc = do
       newInsertions = M.filter (not . null) $ M.fromList wakeTimeGroups
 
   -- Contract: This must be emptied immediately
-  -- in 'iterateRobots'
+  -- in 'iterateRobots'.
+  --
+  -- Tracking the wakeups due on the current tick separately from other
+  -- waiting robots is a performance optimization (see #1736);
+  -- it avoids an O(log N) 'Map' lookup on 'internalWaitingRobots' in favor
+  -- of an O(1) 'null' check in the common case.
   currentTickWakeableBots .= currTickWakeable
 
   -- NOTE: There are two "sources of truth" for the waiting state of robots:

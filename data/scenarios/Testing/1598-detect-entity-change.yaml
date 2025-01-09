@@ -40,6 +40,7 @@ robots:
       - fast grabber
       - logger
       - treads
+      - tweezers
     inventory:
       - [1, "dial (R)"]
       - [1, "dial (G)"]
