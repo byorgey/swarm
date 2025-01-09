@@ -1,0 +1,104 @@
+version: 1
+name: Tunnel bore
+author: Karl Ostmo
+description: |
+  Efficiently bore a tunnel
+creative: false
+seed: 0
+attrs:
+  - name: barrier
+    fg: "#222222"
+    bg: "#111111"
+  - name: bluish
+    fg: "#bbbbff"
+objectives:
+  - goal:
+      - Push a monolith onto the base's initial location.
+    condition: |
+      as base {
+        teleport self (0,0);
+        ishere "monolith";
+      };
+  - teaser: Pick flower
+    hidden: true
+    optional: true
+    goal:
+      - Grab the flower
+    condition: |
+      as base {
+        has "flower";
+      };
+robots:
+  - name: base
+    display:
+      attr: bluish
+    dir: [0, 1]
+    devices:
+      - branch predictor
+      - ADT calculator
+      - comparator
+      - compass
+      - dictionary
+      - dozer blade
+      - grabber
+      - hourglass
+      - keyboard
+      - lambda
+      - logger
+      - net
+      - scanner
+      - strange loop
+      - treads
+      - welder
+solution: |
+   run "scenarios/Challenges/Sokoban/_tunnel-bore/solution.sw"
+entities:
+  - name: monolith
+    display:
+      char: '@'
+      attr: rock
+    description:
+    - Pushable rock
+    properties: [known, unwalkable, portable]
+  - name: crate
+    display:
+      attr: wood
+      char: '▪'
+    description:
+    - Pushable crate
+    properties: [known, portable, unwalkable]
+  - name: wall
+    display:
+      attr: barrier
+      char: '#'
+    description:
+    - Unmovable barrier
+    properties: [known, unwalkable]
+known: [mountain, water, 3D printer, flower]
+world:
+  default: [grass, water]
+  upperleft: [-21, 10]
+  offset: false
+  palette:
+    'B': [ice, null, base]
+    '.': [grass]
+    '*': [grass, flower]
+    'b': [grass, boat]
+    '3': [grass, 3D printer]
+    '@': [grass, monolith]
+    'c': [grass, crate]
+    'A': [grass, wall]
+    'w': [dirt, water]
+    'x': [stone]
+    'z': [dirt]
+  map: |
+    .@.@.@.@.@.@.@.@.@.@.@.@
+    @.@.@.@.@.@.@.@.@.@.@.@.
+    .@.@.@.@.@.@.@.@.@.@.@.@
+    @.@.@.@.@.@.@.@.@.@.@.@.
+    .@.@.@.@.@.@.@.@.@.@.@.@
+    @.@.@.@.@.@.@.@.@.@.@.@.
+    .@.@.@.@.@.@.@.@.@.@.@.@
+    @.@.@.@.@.@.@.@.@.@.@.@.
+    ..........B..............
+    
