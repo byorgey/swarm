@@ -1,0 +1,88 @@
+version: 1
+name: Obelisk
+author: Karl Ostmo
+description: |
+  Approach the obelisk
+creative: false
+seed: 0
+attrs:
+  - name: obelisk0
+    fg: "#ff0000"
+  - name: obelisk1
+    fg: "#ffff00"
+  - name: obelisk2
+    fg: "#00ffff"
+  - name: obelisk3
+    fg: "#00ff00"
+objectives:
+  - id: approach_obelisk
+    teaser: Closer...
+    goal:
+      - |
+        Move closer to the obelisk.
+      - |
+        And closer still...
+    condition: |
+      monitor <- robotnamed "monitor";
+      as monitor {has "dizzy"};
+robots:
+  - name: base
+    dir: [0, 1]
+    devices:
+      - branch predictor
+      - treads
+      - antenna
+      - calculator
+      - clock
+      - comparator
+      - workbench
+      - grabber
+      - dictionary
+      - lambda
+      - logger
+      - welder
+      - hearing aid
+      - scanner
+      - strange loop
+  - name: monitor
+    system: true
+    dir: [0, 1]
+    display:
+      invisible: true
+    inventory:
+      - [1, bitcoin]
+    program: |
+      run "scenarios/Challenges/_obelisk/monitor.sw"
+solution: |
+   run "scenarios/Challenges/_obelisk/solution.sw"
+entities:
+  - name: dizzy
+    display:
+      char: '@'
+    description:
+      - A disorienting vestibular affliction
+    properties: [pickable]
+  - name: obelisk
+    display:
+      char: 'Δ'
+    description:
+      - A drab, ominous tower.
+    properties: [known, unwalkable]
+known: [bitcoin]
+world:
+  default: [dirt]
+  upperleft: [0, 0]
+  offset: false
+  palette:
+    'B': [dirt, null, base]
+    '.': [dirt]
+    'M': [dirt, obelisk, monitor]
+  map: |
+    ................
+    ................
+    ................
+    .M............B.
+    ................
+    ................
+    ................
+    
