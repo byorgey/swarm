@@ -164,12 +164,11 @@ data SwarmKeyDispatchers = SwarmKeyDispatchers
   , robotDispatcher :: SwarmKeyDispatcher
   }
 
-
 -- | This encapsulates both game and UI state for an actively-playing scenario.
-data PlayState = PlayState {
-    _gameState :: GameState
+data PlayState = PlayState
+  { _gameState :: GameState
   , _somethingState :: ()
-}
+  }
 
 --------------------------------------------------
 -- Lenses for PlayState
@@ -181,7 +180,6 @@ gameState :: Lens' PlayState GameState
 
 -- | The 'UIGameplay' record.
 somethingState :: Lens' PlayState ()
-
 
 -- ----------------------------------------------------------------------------
 --                                   APPSTATE                                --
@@ -330,11 +328,11 @@ keyConfig :: Lens' KeyEventHandlingState (KeyConfig SwarmEvent)
 
 -- | Dispatchers that will call handler on key combo.
 keyDispatchers :: Lens' KeyEventHandlingState SwarmKeyDispatchers
-
 --------------------------------------------------
 -- Lenses for AppState
 
 playState :: Functor f => (PlayState -> f PlayState) -> AppState -> f AppState
+
 makeLensesNoSigs ''AppState
 
 -- | The 'UIState' record.
