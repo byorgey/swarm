@@ -25,9 +25,9 @@ IMG_WIDTH=200
 IMG_HEIGHT=150
 
 IMG_OUTPUT_PATH=output.png
-RENDER_IMG_COMMAND="stack exec swarm-scene -- $SCENARIO_PATH --fail-blank --dest $IMG_OUTPUT_PATH --png --width $IMG_WIDTH --height $IMG_HEIGHT"
+RENDER_IMG_COMMAND="cabal run swarm-scene -- $SCENARIO_PATH --fail-blank --dest $IMG_OUTPUT_PATH --png --width $IMG_WIDTH --height $IMG_HEIGHT"
 
-stack build --fast swarm:swarm-scene
+cabal build -j -O0 swarm:swarm-scene
 
 $RENDER_IMG_COMMAND
 code --reuse-window $SCENARIO_PATH && code --reuse-window $IMG_OUTPUT_PATH
