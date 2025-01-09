@@ -1,0 +1,206 @@
+version: 1
+name: Royal outing
+creative: false
+description: Transport the emperor
+attrs:
+  - name: purple
+    fg: "#dd44dd"
+objectives:
+  - id: inside_palanquin
+    teaser: Boarding
+    goal:
+      - Inside palanquin
+    condition: |
+      def locIsInsideEnclosure = \loc. \dims.
+        foundBox <- structure "palanquin" 0;
+        case foundBox (\_. return false) (\enclosure.
+          let boxPos = snd enclosure in
+          return $ snd loc >= snd boxPos
+            && snd loc < snd dims + snd boxPos
+            && fst loc >= fst boxPos
+            && fst loc < fst dims + fst boxPos;
+        );
+        end;
+
+      dims <- floorplan "palanquin";
+
+      emperor <- robotnamed "emperor";
+      as emperor {
+        loc <- whereami;
+        insidePalanquin <- locIsInsideEnclosure loc dims;
+        return insidePalanquin;
+      }
+  - teaser: Joyride
+    goal:
+      - The pieces of the `palanquin`{=structure} are `push`able.
+      - Avoid introducing gaps in the `palanquin`{=structure} walls that would expose the emperor to the outside.
+    condition: |
+      return false;
+    prerequisite:
+      logic:
+        not:
+          or:
+            - id: expose_gap
+            - id: encroached_emperor
+  - id: expose_gap
+    teaser: Opened
+    goal:
+      - Exposed the emperor!
+    hidden: true
+    optional: true
+    prerequisite: inside_palanquin
+    condition: |
+      emperor <- robotnamed "emperor";
+      as emperor {
+        let targetVolume = 25 in
+        vol <- volume targetVolume;
+        return $ case vol (\_. true) (\_. false);
+      }
+  - id: encroached_emperor
+    teaser: Encroached
+    goal:
+      - Encroached upon the emperor!
+    hidden: true
+    optional: true
+    prerequisite: inside_palanquin
+    condition: |
+      emperor <- robotnamed "emperor";
+      as emperor {
+        blockHere <- ishere "block";
+        return blockHere;
+      }
+solution: |
+  run "scenarios/Challenges/_palanquin/solution.sw"
+structures:
+  - name: palanquin
+    recognize: [north]
+    description: "Palanquin"
+    structure:
+      mask: '.'
+      palette:
+        'b': [stone, block]
+      map: |
+        bbbbb
+        b...b
+        b...b
+        b...b
+        bbbbb
+  - name: column
+    recognize: [north]
+    description: "Palatial column"
+    structure:
+      mask: '.'
+      palette:
+        'b': [stone, boulder]
+      map: |
+        .bb.
+        bbbb
+        bbbb
+        .bb.
+robots:
+  - name: base
+    loc: [0, 0]
+    dir: south
+    devices:
+      - branch predictor
+      - ADT calculator
+      - compass
+      - comparator
+      - dictionary
+      - grabber
+      - hearing aid
+      - lambda
+      - rolex
+      - logger
+      - net
+      - scanner
+      - strange loop
+      - treads
+      - dozer blade
+    inventory:
+      - [1, grapes]
+  - name: emperor
+    dir: north
+    loc: [-5, 5]
+    system: true
+    display:
+      invisible: false
+      attr: red
+    walkable:
+      never:
+        - block
+    devices:
+      - ADT calculator
+      - branch predictor
+      - comparator
+      - dictionary
+      - lambda
+      - logger
+      - scanner
+    program: |
+      run "scenarios/Challenges/_palanquin/emperor.sw"
+entities:
+  - name: grapes
+    display:
+      attr: purple
+      char: 'g'
+    description:
+      - Fit for a king
+    properties: [known, pickable]
+  - name: block
+    display:
+      attr: wood
+      char: 'b'
+    description:
+      - Pushable block
+    properties: [known, pushable]
+known: [boulder]
+world:
+  placements:
+    - src: palanquin
+      offset: [19, -2]
+    - src: column
+      offset: [10, -9]
+    - src: column
+      offset: [28, -9]
+  dsl: |
+    overlay
+    [ {grass}
+    , mask (x < -2 && x > -16 && y > -30 && y < 30) (
+        overlay [
+          if (x/4 + y/4) % 2 == 0
+          then {terrain: dirt}
+          else {terrain: ice}
+        ]
+      )
+    ]
+  palette:
+    '+': [stone, erase]
+    '.': [grass, erase]
+  upperleft: [-21, 0]
+  map: |
+    ..........................................
+    .++++++++++++++++++++++++++++++++++++++++.
+    .++++++++++++++++++++++++++++++++++++++++.
+    .++++++++++++++++++++++++++++++++++++++++.
+    .++++++++++++++++++++++++++++++++++++++++.
+    .++++++++++++++++++++++++++++++++++++++++.
+    .++++++++++++++++++++++++++++++++++++++++.
+    .++++++++++++++++++++++++++++++++++++++++.
+    .+++++++..........................+++++++.
+    .+++++++..........................+++++++.
+    .+++++++..........................+++++++.
+    .+++++++..........................+++++++.
+    .+++++++..........................+++++++.
+    .+++++++..........................+++++++.
+    .+++++++..........................+++++++.
+    .+++++++..........................+++++++.
+    .+++++++..........................+++++++.
+    .++++++++++++++++++++++++++++++++++++++++.
+    .++++++++++++++++++++++++++++++++++++++++.
+    .++++++++++++++++++++++++++++++++++++++++.
+    .++++++++++++++++++++++++++++++++++++++++.
+    .++++++++++++++++++++++++++++++++++++++++.
+    .++++++++++++++++++++++++++++++++++++++++.
+    .++++++++++++++++++++++++++++++++++++++++.
+    ..........................................
