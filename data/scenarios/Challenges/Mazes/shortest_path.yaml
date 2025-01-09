@@ -1,0 +1,150 @@
+version: 1
+name: Shortest path
+author: Brent Yorgey
+description: There is a maze, but it can't be seen, only sensed... can you
+  program a robot to navigate it successfully, via the shortest possible path?
+objectives:
+- goal:
+  - There is a maze, but it can't be seen, only sensed... can you
+    navigate it successfully, via the shortest
+    possible path? You win by marking any shortest path from the
+    base to the goal with `path` markers.
+  condition: |
+    def orElse : cmd bool -> cmd bool -> cmd bool = \c1. \c2.
+      b <- c1;
+      if b {return true} {c2}
+    end
+
+    def inverse : dir -> dir = \d.
+      if (d == left) {right} {if (d == right) {left} {d}}
+    end
+
+    def followPathTo : cmd bool -> dir -> cmd bool = \followPath. \d.
+      turn d;
+      b <- blocked;
+      if b
+        {turn (inverse d); return false}
+        { move;
+          res <- followPath;
+          if res {return true} {turn back; move; turn back; turn (inverse d); return false}
+        }
+    end
+
+    def followPath : text -> cmd bool = \thing.
+      loc <- whereami;
+      h <- ishere thing;
+      if (not h)
+      { return false }
+      { if (loc == (27, -17))
+        { return true }
+        { orElse
+          (followPathTo (followPath thing) left)
+          (orElse
+            (followPathTo (followPath thing) forward)
+            (followPathTo (followPath thing) right)
+          )
+        }
+      }
+    end
+
+    def checkPath : cmd bool =
+      teleport self (27, -17);
+      g <- ishere "goal";
+      if g {return false}
+      {
+        loc <- as base {whereami};
+        teleport self loc;
+        followPath "path"
+      }
+    end;
+
+    checkPath
+
+solution: |
+  run "scenarios/Challenges/Mazes/_shortest_path/shortest_path_sol.sw"
+robots:
+  - name: base
+    dir: [0,1]
+    display:
+      char: 'Ω'
+      attr: robot
+    devices:
+      - dictionary
+      - 3D printer
+      - logger
+      - fast grabber
+      - toolkit
+    inventory:
+      - [50, solar panel]
+      - [50, treads]
+      - [50, compass]
+      - [50, scanner]
+      - [50, lambda]
+      - [50, branch predictor]
+      - [50, strange loop]
+      - [50, calculator]
+      - [50, comparator]
+      - [50, logger]
+      - [50, string]
+      - [50, fast grabber]
+      - [50, detonator]
+      - [50, dictionary]
+      - [1000, rock]
+      - [1000, lodestone]
+      - [1000, flower]
+      - [1000, path]
+      - [0, boulder]
+      - [0, goal]
+entities:
+  - name: wall
+    display:
+      invisible: true
+    description:
+    - An invisible wall.
+    properties: [unwalkable, known]
+  - name: goal
+    display:
+      char: '!'
+      attr: device
+    description:
+    - The place you're trying to reach!  You win by executing `grab` on this item.
+    properties: [known, portable]
+  - name: path
+    display:
+      char: '.'
+      attr: device
+    description:
+    - A marker that should be used to mark each cell in a shortest path from the start
+      to the goal.  Just `place "path"` on each cell that is part of a
+      shortest path.
+    properties: [known, portable]
+world:
+  default: [grass]
+  palette:
+    'Ω': [grass, null, base]
+    '.': [grass, null]
+    'x': [grass, wall]
+    '@': [grass, boulder]
+    '!': [grass, goal]
+  upperleft: [-1,1]
+  map: |
+    @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    @Ω........x...x..............@
+    @xx.xxxxx.x.x.xxx....xxxxxxx.@
+    @.x.x...x.x.x...xxxx.......x.@
+    @.....x.x.x.x.x....xxxxxxxxx.@
+    @xx.xxxxx.x.x.xxxx...........@
+    @.......x...x....xxxxxxx.xxxx@
+    @.xxxxx.xxx.xxxx.x...........@
+    @.x.x.x..x.......x.xxx.xxxxx.@
+    @.x.x.xx.x.x.xxx.x.x.....x...@
+    @.x.x.xx.x.x...x...x.x.x.x.xx@
+    @......x...x.x...x.x.x.x.x...@
+    @xxxxxxx.xxx.xxxxx.x.x.x.xxx.@
+    @....................x.x.x.x.@
+    @xxxxxxxxxx.xxxxxxxxxx.x.x.x.@
+    @..x...x.......x.....x.x.....@
+    @x.......x...x...x.x.x.x.x.x.@
+    @xxxxxxxxxx.xxxxxx.x.x.x.x.x.@
+    @..................x...x...x!@
+    @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@

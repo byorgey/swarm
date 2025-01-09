@@ -2,3 +2,4 @@ easy_cave_maze.yaml
 easy_spiral_maze.yaml
 invisible_maze.yaml
 loopy_maze.yaml
+shortest_path.yaml
