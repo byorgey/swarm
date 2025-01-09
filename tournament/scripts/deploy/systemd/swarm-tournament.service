@@ -1,0 +1,14 @@
+[Unit]
+Description=Swarm tournament host
+After=network.target
+StartLimitIntervalSec=0
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+User=bitnami
+WorkingDirectory=/home/bitnami
+ExecStart=/usr/bin/env ./run-webserver.sh
+
+[Install]
+WantedBy=multi-user.target
