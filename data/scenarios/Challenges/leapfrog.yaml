@@ -1,0 +1,131 @@
+version: 1
+name: Leap Frog
+author: Karl Ostmo
+description: |
+  Ranine locomotion
+creative: false
+seed: 0
+attrs:
+  - name: skyBlue
+    fg: '#87CEEB'
+  - name: lightPurple
+    fg: '#CE87EB'
+  - name: hurdle
+    fg: '#ffffff'
+    bg: '#000000'
+objectives:
+  - id: hop_home
+    teaser: Hop home
+    goal:
+      - |
+        Guide the frog (f) from its terrarium into the pond.
+      - |
+        Frogs and toads (t) love to jump over "bubbles", "logs", and "hurdles".
+      - |
+        Bubbles pop when leaped. logs are rolled forward by one unit when leaped.
+    condition: |
+      f <- robotnamed "frog";
+      as f {
+        ishere "water";
+      };
+robots:
+  - name: base
+    dir: [0, 1]
+    devices:
+      - antenna
+      - branch predictor
+      - calculator
+      - clock
+      - comparator
+      - dictionary
+      - grabber
+      - hearing aid
+      - lambda
+      - logger
+      - scanner
+      - strange loop
+      - treads
+      - workbench
+    inventory:
+      - [1, log]
+  - name: frog
+    system: true
+    dir: [0, -1]
+    display:
+      invisible: false
+      attr: 'green'
+      char: f
+    inventory:
+      - [1, bitcoin]
+    program: |
+      run "scenarios/Challenges/_leapfrog/frog.sw"
+  - name: toad
+    system: true
+    dir: [0, -1]
+    display:
+      invisible: false
+      attr: 'gold'
+      char: t
+    inventory:
+      - [1, bitcoin]
+    program: |
+      run "scenarios/Challenges/_leapfrog/frog.sw"
+solution: |
+   run "scenarios/Challenges/_leapfrog/solution.sw"
+entities:
+  - name: bubble
+    display:
+      attr: 'skyBlue'
+      char: 'o'
+    description:
+      - Frogs are compelled to leap over this.
+      - Pops after being leaped.
+    properties: [known, portable]
+  - name: hurdle
+    display:
+      attr: 'hurdle'
+      char: 'H'
+    description:
+      - Frogs are compelled to leap over this.
+      - Cannot be picked up or walked over.
+    properties: [known, unwalkable]
+known: [boulder, water, wavy water]
+world:
+  default: [grass]
+  upperleft: [0, 0]
+  offset: false
+  palette:
+    'Ω': [stone, null, base]
+    'F': [dirt, null, frog]
+    'T': [grass, null, toad]
+    '.': [grass]
+    ',': [dirt]
+    '@': [stone, boulder]
+    'b': [grass, bubble]
+    'L': [grass, log]
+    'H': [grass, hurdle]
+    's': [stone]
+    'w': [stone, water]
+    '~': [stone, wavy water]
+  map: |
+    .sssss.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,
+    ,sssss,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,@,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.
+    .ssF.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,b,b,b,b,b,b,b,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,
+    ,sssΩs,.,.,.,.,.,.,b,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,b,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.
+    .sssss.,.,.,.,.,.,.,b,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,b,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,
+    ,.,.,.,.,.,.,.,.,.,.,b,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,H,.,.,.,.,.,.,T,.,.,.,.,.,.,.,.,.
+    .,.,.,.,.,.,.,.,.,.,.,b,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,b,b,b,b,b,b,b,b,b,L,.,.,.,.,.,.,.,.,.,
+    ,.,.,.,.,.,.,.,.,.,.,.,b,.,.,.,.,T,.,.,.,.,.,.,.,.,.,.,.,b,.,.,H,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.
+    .,.,.,.,.,.,.,.,.,.,.,.,H,H,H,H,L,.,.,.,.,.,.,.,.,.,.,.,b,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,
+    ,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,b,.,.,.,H,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.
+    .,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,b,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,
+    ,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,b,.,.,.,.,H,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.
+    .,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,b,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,
+    ,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,b,.,.,.,b,.,.,.,.,.,.,.,.,.,.,.,.,wwww.,.,.
+    .,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,b,b,b,b,.,.,.,.,.,.,.,.,.,.,.,.wwwwwwww,.,
+    ,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,~ww~ww~w.,.
+    .,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,b,b,b,b,b,b,L,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,b,b,b,bwwwwwwww,.,
+    ,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,T,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,w~ww~www.,.
+    .,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.@.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.@.,.,.,.wwwwwwww,.,
+    ,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,~www.,.,.
+    

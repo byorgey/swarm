@@ -229,6 +229,7 @@ testScenarioSolutions rs ui key =
         [ testSolution Default "Challenges/chess_horse"
         , testSolution Default "Challenges/teleport"
         , testSolution Default "Challenges/maypole"
+        , testSolution Default "Challenges/leapfrog"
         , testSolution (Sec 5) "Challenges/2048"
         , testSolution (Sec 6) "Challenges/word-search"
         , testSolution (Sec 10) "Challenges/bridge-building"
