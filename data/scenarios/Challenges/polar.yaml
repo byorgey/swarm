@@ -1,0 +1,278 @@
+version: 1
+name: Geo-battery
+author: Karl Ostmo
+description: |
+  Harness resources from polar opposite regions
+creative: false
+seed: 4
+attrs:
+  - name: anode
+    fg: "#dddddd"
+    bg: "#333333"
+  - name: cathode
+    fg: "#333333"
+    bg: "#dddddd"
+  - name: layer1a
+    fg: "#a6cee3"
+    bg: "#1f78b4"
+  - name: layer2a
+    fg: "#fb9a99"
+    bg: "#e31a1c"
+  - name: layer3a
+    fg: "#b2df8a"
+    bg: "#33a02c"
+  - name: layer1b
+    fg: "#fdbf6f"
+    bg: "#ff7f00"
+  - name: layer2b
+    fg: "#ffff99"
+    bg: "#b15928"
+  - name: layer3b
+    fg: "#cab2d6"
+    bg: "#6a3d9a"
+objectives:
+  - teaser: Something
+    goal:
+      - |
+        Something
+    condition: |
+      return false
+robots:
+  - name: base
+    dir: [1, 0]
+    devices:
+      - 3D printer
+      - blueprint
+      - branch predictor
+      - ADT calculator
+      - clock
+      - comparator
+      - compass
+      - counter
+      - dictionary
+      - drill
+      - fast grabber
+      - GPS receiver
+      - harvester
+      - hearing aid
+      - keyboard
+      - lambda
+      - logger
+      - net
+      - rolex
+      - scanner
+      - strange loop
+      - toolkit
+      - torch
+      - treads
+      - wayfinder
+      - welder
+      - workbench
+    inventory:
+      - [3, bell jar]
+solution: |
+  run "scenarios/Challenges/_polar/solution.sw"
+entities:
+  - name: torch
+    display:
+      attr: wood
+      char: 't'
+    description:
+      - Can set things on fire
+    properties: [known, pickable]
+    capabilities: [ignite]
+  - name: wayfinder
+    display:
+      char: 'w'
+    description:
+      - |
+        Enables the `path` command:
+      - |
+        `path : (unit + int) -> ((int * int) + text) -> cmd (unit + (dir * int))`
+      - |
+        Optionally supply a distance limit as the first argument, and
+        supply either a location (`inL`) or an entity (`inR`) as the second argument.
+      - |
+        Example:
+      - |
+        `path (inL ()) (inR "tree");`
+      - If a path exists, returns the direction to proceed along.
+    properties: [known, pickable]
+    capabilities: [path]
+  - name: bell jar
+    display:
+      attr: device
+      char: 'J'
+    description:
+      - Can store one unit of substance
+    properties: [known, pickable]
+  - name: anode
+    display:
+      attr: anode
+      char: 'A'
+    description:
+      - anode
+    properties: [known, combustible]
+    combustion:
+      ignition: 0.5
+      duration: [40, 80]
+      product: null
+  - name: cathode
+    display:
+      attr: cathode
+      char: 'C'
+    description:
+      - cathode
+    properties: [known]
+  - name: layer1a
+    display:
+      attr: layer1a
+      char: '*'
+    description:
+      - layer1a
+    properties: [known, unwalkable, pickable]
+  - name: layer2a
+    display:
+      attr: layer2a
+      char: '*'
+    description:
+      - layer2a
+    properties: [known, unwalkable, pickable]
+  - name: layer3a
+    display:
+      attr: layer3a
+      char: '*'
+    description:
+      - layer3a
+    properties: [known, unwalkable, pickable]
+  - name: layer1b
+    display:
+      attr: layer1b
+      char: '*'
+    description:
+      - layer1b
+    properties: [known, unwalkable, pickable]
+  - name: layer2b
+    display:
+      attr: layer2b
+      char: '*'
+    description:
+      - layer2b
+    properties: [known, unwalkable, pickable]
+  - name: layer3b
+    display:
+      attr: layer3b
+      char: '*'
+    description:
+      - layer3b
+    properties: [known, unwalkable, pickable]
+  - name: layer1a unit
+    display:
+      attr: layer1a
+      char: '*'
+    description:
+      - layer1a unit
+    properties: [known, unwalkable, pickable]
+  - name: layer2a unit
+    display:
+      attr: layer2a
+      char: '*'
+    description:
+      - layer2a unit
+    properties: [known, unwalkable, pickable]
+  - name: layer3a unit
+    display:
+      attr: layer3a
+      char: '*'
+    description:
+      - layer3a unit
+    properties: [known, unwalkable, pickable]
+  - name: layer1b unit
+    display:
+      attr: layer1b
+      char: '*'
+    description:
+      - layer1b unit
+    properties: [known, unwalkable, pickable]
+  - name: layer2b unit
+    display:
+      attr: layer2b
+      char: '*'
+    description:
+      - layer2b unit
+    properties: [known, unwalkable, pickable]
+  - name: layer3b unit
+    display:
+      attr: layer3b
+      char: '*'
+    description:
+      - layer3b unit
+    properties: [known, unwalkable, pickable]
+recipes:
+  - in:
+      - [1, "bell jar"]
+      - [1, "layer1a"]
+    out:
+      - [1, "layer1a unit"]
+    required:
+      - [1, drill]
+  - in:
+      - [1, "layer1a unit"]
+      - [1, "layer1b"]
+    out:
+      - [1, "layer1b unit"]
+    required:
+      - [1, drill]
+  - in:
+      - [1, "layer1b unit"]
+      - [1, "layer2a"]
+    out:
+      - [1, "layer2a unit"]
+    required:
+      - [1, drill]
+  - in:
+      - [1, "layer2a unit"]
+      - [1, "layer2b"]
+    out:
+      - [1, "layer2b unit"]
+    required:
+      - [1, drill]
+  - in:
+      - [1, "layer2b unit"]
+      - [1, "layer3a"]
+    out:
+      - [1, "layer3a unit"]
+    required:
+      - [1, drill]
+  - in:
+      - [1, "layer3a unit"]
+      - [1, "layer3b"]
+    out:
+      - [1, "layer3b unit"]
+    required:
+      - [1, drill]
+known: [tree, rock, flower, boulder]
+world:
+  dsl: |
+    let
+      lakeNoise = perlin seed 1 0.04 0.0
+    in
+      overlay
+      [ {grass}
+      , mask (lakeNoise < -0.60) {layer1a}
+      , mask (lakeNoise < -0.70) {layer2a}
+      , mask (lakeNoise < -0.80) {layer3a}
+      , mask (lakeNoise < -0.90) {cathode}
+      , mask (lakeNoise > 0.60) {layer1b}
+      , mask (lakeNoise > 0.70) {layer2b}
+      , mask (lakeNoise > 0.80) {layer3b}
+      , mask (lakeNoise > 0.90) {anode}
+      ]
+  upperleft: [0, 0]
+  offset: false
+  palette:
+    'B': [grass, erase, base]
+    '.': [grass, erase]
+  map: |
+    B..
+    ...

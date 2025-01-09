@@ -12,6 +12,7 @@ hanoi.yaml
 hackman.yaml
 lights-out.yaml
 bucket-brigade.yaml
+polar.yaml
 wave.yaml
 gallery.yaml
 wolf-goat-cabbage.yaml
