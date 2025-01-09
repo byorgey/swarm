@@ -47,13 +47,13 @@ extra-source-files:
   editors/vim/*.lua
   editors/vim/*.vim
   editors/vscode/syntaxes/*.yaml
-  example/*.sw
 
 extra-doc-files: docs/image/sublibrary-graph.svg
 data-dir: data/
 data-files:
   *.txt
   *.yaml
+  example/*.sw
   scenarios/**/*.sw
   scenarios/**/*.txt
   scenarios/**/*.yaml
