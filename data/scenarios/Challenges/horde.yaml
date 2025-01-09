@@ -1,0 +1,101 @@
+version: 1
+name: Horde
+author: Karl Ostmo
+description: |
+  Keep the horde at bay
+creative: false
+objectives:
+  - goal:
+      - |
+        Win
+    condition: |
+      return false
+robots:
+  - name: base
+    dir: east
+    devices:
+      - 3D printer
+      - branch predictor
+      - ADT calculator
+      - clock
+      - comparator
+      - compass
+      - counter
+      - dictionary
+      - dozer blade
+      - drill
+      - fast grabber
+      - GPS receiver
+      - harvester
+      - hearing aid
+      - keyboard
+      - lambda
+      - logger
+      - net
+      - rolex
+      - scanner
+      - strange loop
+      - toolkit
+      - treads
+      - welder
+      - workbench
+    inventory:
+      - [1000, wall]
+  - name: baddie
+    devices:
+      - drill
+    system: true
+    display:
+      invisible: false
+    dir: west
+    program: |
+      run "scenarios/Challenges/_horde/baddie.sw"
+solution: |
+  run "scenarios/Challenges/_horde/solution.sw"
+entities:
+  - name: wall
+    display:
+      char: 'w'
+    description:
+      - Wall
+    properties: [known, unwalkable, pushable]
+  - name: rubble
+    display:
+      char: 'r'
+    description:
+      - Rubble
+    properties: [known, pickable]
+recipes:
+  - in:
+      - [1, wall]
+    out:
+      - [1, rubble]
+    required:
+      - [1, drill]
+    time: 8
+known: [water]
+world:
+  dsl: |
+    let
+      outerBoundary = x <= -5 || x >= 5 || y > 25
+    in
+      overlay
+      [ {grass}
+      , mask outerBoundary {water}
+      ]
+  upperleft: [-1, 4]
+  palette:
+    'B': [dirt, null, base]
+    'b': [dirt, null, baddie]
+    '.': [dirt]
+    'w': [dirt, wall]
+  map: |
+    wwwww......wwwwww....
+    wwwww......wwwwww....
+    wwwww......wwwwww....
+    wwwww......wwwwww....
+    wwwww.B....wwwwww...b
+    wwwww......wwwwww....
+    wwwww......wwwwww....
+    wwwww......wwwwww....
+    wwwww......wwwwww....

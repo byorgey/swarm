@@ -18,6 +18,7 @@ wolf-goat-cabbage.yaml
 blender.yaml
 dna.yaml
 friend.yaml
+horde.yaml
 pack-tetrominoes.yaml
 dimsum.yaml
 telephone.yaml
