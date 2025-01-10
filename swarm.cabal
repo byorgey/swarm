@@ -119,6 +119,9 @@ common ghc2021-extensions
     TypeApplications
     TypeOperators
 
+-- Allow Cabal to recognize swarm as a library.
+library
+
 common base
   build-depends: base >=4.14 && <4.21
 
