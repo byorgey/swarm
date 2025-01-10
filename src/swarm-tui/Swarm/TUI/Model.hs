@@ -164,6 +164,25 @@ data SwarmKeyDispatchers = SwarmKeyDispatchers
   , robotDispatcher :: SwarmKeyDispatcher
   }
 
+
+-- | This encapsulates both game and UI state for an actively-playing scenario.
+data PlayState = PlayState {
+    _gameState :: GameState
+  , _somethingState :: ()
+}
+
+--------------------------------------------------
+-- Lenses for PlayState
+
+makeLensesNoSigs ''PlayState
+
+-- | The 'GameState' record.
+gameState :: Lens' PlayState GameState
+
+-- | The 'UIGameplay' record.
+somethingState :: Lens' PlayState ()
+
+
 -- ----------------------------------------------------------------------------
 --                                   APPSTATE                                --
 -- ----------------------------------------------------------------------------
@@ -174,7 +193,7 @@ data SwarmKeyDispatchers = SwarmKeyDispatchers
 -- or updating the UI. Also consider that GameState can change when loading
 -- a new scenario - if the state should persist games, use RuntimeState.
 data AppState = AppState
-  { _gameState :: GameState
+  { _playState :: PlayState
   , _uiState :: UIState
   , _keyEventHandling :: KeyEventHandlingState
   , _runtimeState :: RuntimeState
@@ -315,10 +334,8 @@ keyDispatchers :: Lens' KeyEventHandlingState SwarmKeyDispatchers
 --------------------------------------------------
 -- Lenses for AppState
 
+playState :: Functor f => (PlayState -> f PlayState) -> AppState -> f AppState
 makeLensesNoSigs ''AppState
-
--- | The 'GameState' record.
-gameState :: Lens' AppState GameState
 
 -- | The 'UIState' record.
 uiState :: Lens' AppState UIState
