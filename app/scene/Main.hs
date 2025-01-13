@@ -12,16 +12,15 @@ data CLI
   = RenderMap FilePath RenderOpts
   | RenderStructures FilePath RenderOpts
 
-
 mapRenderOpts :: Parser FilePath
 mapRenderOpts = strArgument (metavar "SCENARIO")
 
 cliParser :: Parser CLI
 cliParser =
-    subparser
+  subparser
     ( mconcat
         [ command "scene" (info (RenderMap <$> mapRenderOpts <*> subOpts <**> helper) (progDesc "Run the Swarm game (default)"))
-        , command "structures" (info (RenderStructures <$> mapRenderOpts <*> subOpts <**> helper ) (progDesc "Format a file"))
+        , command "structures" (info (RenderStructures <$> mapRenderOpts <*> subOpts <**> helper) (progDesc "Format a file"))
         ]
     )
     <|> RenderMap <$> mapRenderOpts <*> subOpts
