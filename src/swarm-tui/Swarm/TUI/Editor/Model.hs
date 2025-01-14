@@ -10,9 +10,11 @@ import Brick.Widgets.List qualified as BL
 import Control.Lens hiding (from, (.=), (<.>))
 import Data.List.Extra (enumerate)
 import Data.Map qualified as M
+import Data.Text qualified as T
 import Data.Vector qualified as V
-import Swarm.Game.Display (Display)
+import Swarm.Game.Display
 import Swarm.Game.Entity qualified as E
+import Swarm.Game.Entity.Cosmetic
 import Swarm.Game.Scenario.Topography.EntityFacade
 import Swarm.Game.Scenario.Topography.WorldPalette
 import Swarm.Game.Terrain (TerrainType)
@@ -33,8 +35,19 @@ data EntityPaint
   deriving (Eq)
 
 getDisplay :: EntityPaint -> Display
-getDisplay (Facade (EntityFacade _ d)) = d
-getDisplay (Ref e) = e ^. E.entityDisplay
+getDisplay ep = mkEntBgSource $ case ep of
+  Facade (EntityFacade _ d) -> d
+  Ref e -> e ^. E.entityDisplay
+ where
+  mkEntBgSource d = d {_backgroundSources = src}
+   where
+    src = case d ^. displayAttr of
+      AWorld n ->
+        BackgroundSource
+          { terrainBgAttr = Just . WorldAttr $ T.unpack n
+          , entityBgAttr = Nothing
+          }
+      _ -> mempty
 
 toFacade :: EntityPaint -> EntityFacade
 toFacade = \case

@@ -60,7 +60,14 @@ getTerrainEntityColor ::
 getTerrainEntityColor aMap (Cell terr cellEnt _) =
   (entityColor =<< erasableToMaybe cellEnt) <|> terrainFallback
  where
-  terrainFallback = M.lookup (WorldAttr $ T.unpack $ getTerrainWord terr) aMap
+  terrainFallback = getTerrainColor aMap terr
   entityColor (EntityFacade _ d) = case d ^. displayAttr of
     AWorld n -> M.lookup (WorldAttr $ T.unpack n) aMap
     _ -> Nothing
+
+getTerrainColor ::
+  M.Map WorldAttr PreservableColor ->
+  TerrainType ->
+  Maybe PreservableColor
+getTerrainColor aMap terr =
+  M.lookup (WorldAttr $ T.unpack $ getTerrainWord terr) aMap

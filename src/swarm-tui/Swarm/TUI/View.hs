@@ -70,6 +70,7 @@ import Swarm.Constant
 import Swarm.Game.Device (commandCost, commandsForDeviceCaps, enabledCommands, getCapabilitySet, getMap, ingredients)
 import Swarm.Game.Display
 import Swarm.Game.Entity as E
+import Swarm.Game.Entity.Cosmetic
 import Swarm.Game.Ingredients
 import Swarm.Game.Land
 import Swarm.Game.Location
@@ -78,6 +79,7 @@ import Swarm.Game.Robot
 import Swarm.Game.Robot.Concrete
 import Swarm.Game.Scenario (
   scenarioAuthor,
+  scenarioCosmetics,
   scenarioCreative,
   scenarioDescription,
   scenarioKnown,
@@ -277,7 +279,9 @@ drawNewGameMenuUI (l :| ls) launchOptions = case displayedFor of
     tm = s ^. scenarioLandscape . scenarioTerrainAndEntities . terrainMap
     ri = RenderingInput theWorlds entIsKnown tm
 
-    renderCoord = renderDisplay . displayLocRaw (WorldOverdraw False mempty) ri []
+    aMap = s ^. scenarioLandscape . scenarioCosmetics
+
+    renderCoord = renderDisplay aMap . displayLocRaw (WorldOverdraw False mempty) ri []
     worldPeek = worldWidget renderCoord vc
 
     firstRow =
@@ -459,7 +463,18 @@ drawGameUI s =
    where
     widg = case uig ^. uiWorldCursor of
       Nothing -> str $ renderCoordsString $ s ^. gameState . robotInfo . viewCenter
-      Just coord -> clickable WorldPositionIndicator $ drawWorldCursorInfo (uig ^. uiWorldEditor . worldOverdraw) (s ^. gameState) coord
+      Just coord ->
+        clickable WorldPositionIndicator $
+          drawWorldCursorInfo
+            aMap
+            (uig ^. uiWorldEditor . worldOverdraw)
+            (s ^. gameState)
+            coord
+       where
+        aMap =
+          maybe mempty (view (scenarioLandscape . scenarioCosmetics) . fst) $
+            s ^. uiState . uiGameplay . scenarioRef
+
   -- Add clock display in top right of the world view if focused robot
   -- has a clock equipped
   addClock = topLabels . rightLabel ?~ padLeftRight 1 (drawClockDisplay (uig ^. uiTiming . lgTicksPerSecond) $ s ^. gameState)
@@ -499,10 +514,15 @@ drawGameUI s =
           )
     ]
 
-drawWorldCursorInfo :: WorldOverdraw -> GameState -> Cosmic Coords -> Widget Name
-drawWorldCursorInfo worldEditor g cCoords =
+drawWorldCursorInfo ::
+  M.Map WorldAttr PreservableColor ->
+  WorldOverdraw ->
+  GameState ->
+  Cosmic Coords ->
+  Widget Name
+drawWorldCursorInfo aMap worldEditor g cCoords =
   case getStatic g coords of
-    Just s -> renderDisplay $ displayStatic s
+    Just s -> renderDisplay aMap $ displayStatic s
     Nothing -> hBox $ tileMemberWidgets ++ [coordsWidget]
  where
   Cosmic _ coords = cCoords
@@ -516,7 +536,7 @@ drawWorldCursorInfo worldEditor g cCoords =
       . zipWith f tileMembers
       $ ["at", "on", "with"]
    where
-    f cell preposition = [renderDisplay cell, txt preposition]
+    f cell preposition = [renderDisplay aMap cell, txt preposition]
 
   ri =
     RenderingInput
@@ -622,9 +642,9 @@ drawModal s = \case
       (s ^. keyEventHandling)
   RobotsModal -> drawRobotsModal $ uig ^. uiDialogs . uiRobot
   RecipesModal -> availableListWidget gs RecipeList
-  CommandsModal -> commandsListWidget gs
+  CommandsModal -> commandsListWidget (s ^. uiState . uiGameplay) gs
   MessagesModal -> availableListWidget gs MessageList
-  StructuresModal -> SR.renderStructuresDisplay gs (uig ^. uiDialogs . uiStructure)
+  StructuresModal -> SR.renderStructuresDisplay gs uig
   ScenarioEndModal outcome ->
     padBottom (Pad 1) $
       vBox $
@@ -737,8 +757,8 @@ mkAvailableList gs notifLens notifRender = map padRender news <> notifSep <> map
         ]
     | otherwise = []
 
-commandsListWidget :: GameState -> Widget Name
-commandsListWidget gs =
+commandsListWidget :: UIGameplay -> GameState -> Widget Name
+commandsListWidget uig gs =
   hCenter $
     vBox
       [ table
@@ -780,7 +800,8 @@ commandsListWidget gs =
           (r ^. equippedDevices) `union` (r ^. robotInventory)
     Nothing -> mempty
 
-  listDevices cmd = vBox $ map drawLabelledEntityName providerDevices
+  aMap = maybe mempty (view (scenarioLandscape . scenarioCosmetics) . fst) $ uig ^. scenarioRef
+  listDevices cmd = vBox $ map (drawLabelledEntityName aMap) providerDevices
    where
     providerDevices =
       concatMap (flip (M.findWithDefault []) entsByCap) $
@@ -1047,11 +1068,12 @@ drawRobotPanel s
   -- away and a robot that does not exist.
   | Just r <- s ^. gameState . to focusedRobot
   , Just (_, lst) <- s ^. uiState . uiGameplay . uiInventory . uiInventoryList =
-      let drawClickableItem pos selb = clickable (InventoryListItem pos) . drawItem (lst ^. BL.listSelectedL) pos selb
+      let aMap = maybe mempty (view (scenarioLandscape . scenarioCosmetics) . fst) $ s ^. uiState . uiGameplay . scenarioRef
+          drawClickableItem pos selb = clickable (InventoryListItem pos) . drawItem aMap (lst ^. BL.listSelectedL) pos selb
           details =
             [ txt (r ^. robotName)
             , padLeft (Pad 2) . str . renderCoordsString $ r ^. robotLocation
-            , padLeft (Pad 2) $ renderDisplay (r ^. robotDisplay)
+            , padLeft (Pad 2) $ renderDisplay aMap (r ^. robotDisplay)
             ]
        in padBottom Max $
             vBox
@@ -1066,6 +1088,7 @@ blank = padRight Max . padBottom Max $ str " "
 
 -- | Draw an inventory entry.
 drawItem ::
+  M.Map WorldAttr PreservableColor ->
   -- | The index of the currently selected inventory entry
   Maybe Int ->
   -- | The index of the entry we are drawing
@@ -1077,17 +1100,17 @@ drawItem ::
   -- | The entry to draw.
   InventoryListEntry ->
   Widget Name
-drawItem sel i _ (Separator l) =
+drawItem _ sel i _ (Separator l) =
   -- Make sure a separator right before the focused element is
   -- visible. Otherwise, when a separator occurs as the very first
   -- element of the list, once it scrolls off the top of the viewport
   -- it will never become visible again.
   -- See https://github.com/jtdaugherty/brick/issues/336#issuecomment-921220025
   applyWhen (sel == Just (i + 1)) visible $ hBorderWithLabel (txt l)
-drawItem _ _ _ (InventoryEntry n e) = drawLabelledEntityName e <+> showCount n
+drawItem aMap _ _ _ (InventoryEntry n e) = drawLabelledEntityName aMap e <+> showCount n
  where
   showCount = padLeft Max . str . show
-drawItem _ _ _ (EquippedEntry e) = drawLabelledEntityName e <+> padLeft Max (str " ")
+drawItem aMap _ _ _ (EquippedEntry e) = drawLabelledEntityName aMap e <+> padLeft Max (str " ")
 
 ------------------------------------------------------------
 -- Info panel

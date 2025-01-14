@@ -7,6 +7,7 @@
 module Swarm.TUI.View.CellDisplay where
 
 import Brick
+import Control.Applicative ((<|>))
 import Control.Lens (to, view, (&), (.~), (^.))
 import Data.ByteString (ByteString)
 import Data.Hash.Murmur
@@ -20,21 +21,13 @@ import Data.Tagged (unTagged)
 import Data.Word (Word32)
 import Graphics.Vty qualified as V
 import Linear.Affine ((.-.))
-import Swarm.Game.Display (
-  Attribute (AEntity),
-  Display,
-  boundaryOverride,
-  defaultEntityDisplay,
-  displayAttr,
-  displayChar,
-  displayPriority,
-  getBoundaryDisplay,
-  hidden,
- )
+import Swarm.Game.Display
 import Swarm.Game.Entity
+import Swarm.Game.Entity.Cosmetic
 import Swarm.Game.Land
 import Swarm.Game.Location (Point (..), toHeading)
 import Swarm.Game.Robot
+import Swarm.Game.Scenario
 import Swarm.Game.Scenario.Topography.EntityFacade
 import Swarm.Game.Scenario.Topography.Structure.Recognition (foundStructures)
 import Swarm.Game.Scenario.Topography.Structure.Recognition.Registry (foundByLocation)
@@ -60,8 +53,23 @@ import Witch (from)
 import Witch.Encoding qualified as Encoding
 
 -- | Render a display as a UI widget.
-renderDisplay :: Display -> Widget n
-renderDisplay disp = withAttr (disp ^. displayAttr . to toAttrName) $ str [displayChar disp]
+renderDisplay ::
+  M.Map WorldAttr PreservableColor ->
+  Display ->
+  Widget n
+renderDisplay aMap disp =
+  applyBackground $ withAttr (disp ^. displayAttr . to toAttrName) $ str [displayChar disp]
+ where
+  applyBackground =
+    maybe id (\c -> modifyDefAttr (`V.withBackColor` c)) $
+      lookupBg e <|> lookupBg t
+   where
+    BackgroundSource t e = disp ^. backgroundSources
+
+    lookupBg mayAttr = do
+      a <- mayAttr
+      b <- M.lookup a aMap
+      getBackground $ mkBrickColor <$> b
 
 -- | Render the 'Display' for a specific location.
 drawLoc :: UIGameplay -> GameState -> Cosmic Coords -> Widget Name
@@ -72,7 +80,11 @@ drawLoc ui g cCoords@(Cosmic _ coords) =
  where
   showRobots = ui ^. uiShowRobots
   we = ui ^. uiWorldEditor . worldOverdraw
-  drawCell = renderDisplay $ displayLoc showRobots we g cCoords
+
+  -- TODO (#2265): "UIGameplay" should be an optional member of UIState,
+  -- and "scenarioRef" should be a mandatory member of UIGameplay.
+  aMap = maybe mempty (view (scenarioLandscape . scenarioCosmetics) . fst) $ ui ^. scenarioRef
+  drawCell = renderDisplay aMap $ displayLoc showRobots we g cCoords
 
   boldStructure = applyWhen isStructure $ modifyDefAttr (`V.withStyle` V.bold)
    where

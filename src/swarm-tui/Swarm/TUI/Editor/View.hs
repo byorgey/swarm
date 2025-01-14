@@ -8,6 +8,8 @@ import Brick.Widgets.Center (hCenter)
 import Brick.Widgets.List qualified as BL
 import Control.Lens hiding (Const, from)
 import Data.List qualified as L
+import Data.Map qualified as M
+import Swarm.Game.Entity.Cosmetic
 import Swarm.Game.Land
 import Swarm.Game.Scenario
 import Swarm.Game.Scenario.Topography.Area qualified as EA
@@ -80,16 +82,17 @@ drawWorldEditor toplevelFocusRing uig =
     selectedThing = snd <$> BL.listSelectedElement list
 
   tm = extractTerrainMap uig
+  aMap = maybe mempty (view (scenarioLandscape . scenarioCosmetics) . fst) $ uig ^. scenarioRef
 
   brushWidget =
     mkFormControl (WorldEditorPanelControl BrushSelector) $
       padRight (Pad 1) (str "Brush:")
-        <+> swatchContent (worldEditor ^. terrainList) (VU.drawLabeledTerrainSwatch tm)
+        <+> swatchContent (worldEditor ^. terrainList) (VU.drawLabeledTerrainSwatch aMap tm)
 
   entityWidget =
     mkFormControl (WorldEditorPanelControl EntitySelector) $
       padRight (Pad 1) (str "Entity:")
-        <+> swatchContent (worldEditor ^. entityPaintList) drawLabeledEntitySwatch
+        <+> swatchContent (worldEditor ^. entityPaintList) (drawLabeledEntitySwatch aMap)
 
   clearEntityButtonWidget =
     if null $ worldEditor ^. entityPaintList . BL.listSelectedL
@@ -139,32 +142,54 @@ drawWorldEditor toplevelFocusRing uig =
 
   statusBox = maybe emptyWidget str $ worldEditor ^. lastWorldEditorMessage
 
-drawLabeledEntitySwatch :: EntityFacade -> Widget Name
-drawLabeledEntitySwatch (EntityFacade eName eDisplay) =
+drawLabeledEntitySwatch ::
+  M.Map WorldAttr PreservableColor ->
+  EntityFacade ->
+  Widget Name
+drawLabeledEntitySwatch aMap (EntityFacade eName eDisplay) =
   tile <+> txt eName
  where
-  tile = padRight (Pad 1) $ renderDisplay eDisplay
+  tile = padRight (Pad 1) $ renderDisplay aMap eDisplay
 
 drawTerrainSelector :: UIGameplay -> Widget Name
 drawTerrainSelector uig =
   padAll 1
     . hCenter
     . vLimit 8
-    . BL.renderListWithIndex (listDrawTerrainElement $ extractTerrainMap uig) True
+    . BL.renderListWithIndex (listDrawTerrainElement aMap $ extractTerrainMap uig) True
     $ uig ^. uiWorldEditor . terrainList
+ where
+  aMap =
+    maybe mempty (view (scenarioLandscape . scenarioCosmetics) . fst) $
+      uig ^. scenarioRef
 
-listDrawTerrainElement :: TerrainMap -> Int -> Bool -> TerrainType -> Widget Name
-listDrawTerrainElement tm pos _isSelected a =
-  clickable (TerrainListItem pos) $ VU.drawLabeledTerrainSwatch tm a
+listDrawTerrainElement ::
+  M.Map WorldAttr PreservableColor ->
+  TerrainMap ->
+  Int ->
+  Bool ->
+  TerrainType ->
+  Widget Name
+listDrawTerrainElement aMap tm pos _isSelected a =
+  clickable (TerrainListItem pos) $ VU.drawLabeledTerrainSwatch aMap tm a
 
 drawEntityPaintSelector :: UIGameplay -> Widget Name
 drawEntityPaintSelector uig =
   padAll 1
     . hCenter
     . vLimit 10
-    . BL.renderListWithIndex listDrawEntityPaintElement True
+    . BL.renderListWithIndex (listDrawEntityPaintElement aMap) True
     $ uig ^. uiWorldEditor . entityPaintList
+ where
+  aMap =
+    maybe mempty (view (scenarioLandscape . scenarioCosmetics) . fst) $
+      uig ^. scenarioRef
 
-listDrawEntityPaintElement :: Int -> Bool -> EntityFacade -> Widget Name
-listDrawEntityPaintElement pos _isSelected a =
-  clickable (EntityPaintListItem pos) $ drawLabeledEntitySwatch a
+listDrawEntityPaintElement ::
+  M.Map WorldAttr PreservableColor ->
+  Int ->
+  Bool ->
+  EntityFacade ->
+  Widget Name
+listDrawEntityPaintElement aMap pos _isSelected =
+  clickable (EntityPaintListItem pos) . drawLabeledEntitySwatch aMap

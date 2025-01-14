@@ -17,6 +17,7 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Graphics.Vty qualified as V
 import Swarm.Game.Entity as E
+import Swarm.Game.Entity.Cosmetic
 import Swarm.Game.Land
 import Swarm.Game.Scenario (scenarioMetadata, scenarioName)
 import Swarm.Game.ScenarioInfo (scenarioItemName)
@@ -164,13 +165,17 @@ drawMarkdown d = do
     "type" -> magentaAttr
     _snippet -> highlightAttr -- same as plain code
 
-drawLabeledTerrainSwatch :: TerrainMap -> TerrainType -> Widget Name
-drawLabeledTerrainSwatch tm a =
+drawLabeledTerrainSwatch ::
+  M.Map WorldAttr PreservableColor ->
+  TerrainMap ->
+  TerrainType ->
+  Widget Name
+drawLabeledTerrainSwatch aMap tm a =
   tile <+> str materialName
  where
   tile =
     padRight (Pad 1)
-      . renderDisplay
+      . renderDisplay aMap
       . maybe mempty terrainDisplay
       $ M.lookup a (terrainByName tm)
 
@@ -243,10 +248,13 @@ maybeScroll vpName contents =
 
 -- | Draw the name of an entity, labelled with its visual
 --   representation as a cell in the world.
-drawLabelledEntityName :: Entity -> Widget n
-drawLabelledEntityName e =
+drawLabelledEntityName ::
+  M.Map WorldAttr PreservableColor ->
+  Entity ->
+  Widget n
+drawLabelledEntityName aMap e =
   hBox
-    [ padRight (Pad 2) (renderDisplay (e ^. entityDisplay))
+    [ padRight (Pad 2) (renderDisplay aMap (e ^. entityDisplay))
     , txt (e ^. entityName)
     ]
 

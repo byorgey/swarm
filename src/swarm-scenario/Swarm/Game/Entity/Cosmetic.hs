@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 -- |
 -- SPDX-License-Identifier: BSD-3-Clause
 --
@@ -6,7 +8,9 @@ module Swarm.Game.Entity.Cosmetic where
 
 import Codec.Picture (PixelRGBA8 (..))
 import Data.Colour.SRGB (RGB (..))
+import Data.Hashable
 import Data.Word (Word8)
+import GHC.Generics (Generic)
 import Swarm.Game.Scenario.Topography.Rasterize
 
 data NamedColor
@@ -17,7 +21,7 @@ data NamedColor
   | Blue
   | BrightYellow
   | Yellow
-  deriving (Show)
+  deriving (Show, Eq, Generic, Hashable)
 
 -- | 8-bit color
 type RGBColor = RGB Word8
@@ -43,12 +47,15 @@ namedToTriple = \case
   BrightYellow -> RGB 233 173 12
   Yellow -> RGB 162 115 76
 
+instance Hashable RGBColor where
+  hashWithSalt a (RGB r g b) = hashWithSalt a (r, g, b)
+
 -- | High-fidelity color representation for rendering
 -- outside of the TUI.
 data TrueColor
   = AnsiColor NamedColor
   | Triple RGBColor
-  deriving (Show)
+  deriving (Show, Eq, Generic, Hashable)
 
 -- |
 -- A value of type @ColorLayers a@ represents the assignment of
@@ -74,7 +81,9 @@ data ColorLayers a
       a
       -- | background
       a
-  deriving (Show, Functor)
+  deriving (Show, Eq, Functor, Generic)
+
+instance Hashable (ColorLayers TrueColor)
 
 type PreservableColor = ColorLayers TrueColor
 
@@ -96,4 +105,4 @@ flattenBg = \case
   FgAndBg _ x -> x
 
 newtype WorldAttr = WorldAttr String
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord, Show, Generic, Hashable)
