@@ -10,10 +10,21 @@ import Swarm.Game.World.Render (FailureMode (..), OuputFormat (..), RenderComput
 
 data CLI
   = RenderMap FilePath RenderOpts
+  | RenderStructures FilePath RenderOpts
+
+
+mapRenderOpts :: Parser FilePath
+mapRenderOpts = strArgument (metavar "SCENARIO")
 
 cliParser :: Parser CLI
 cliParser =
-  RenderMap <$> strArgument (metavar "SCENARIO") <*> subOpts
+    subparser
+    ( mconcat
+        [ command "scene" (info (RenderMap <$> mapRenderOpts <*> subOpts <**> helper) (progDesc "Run the Swarm game (default)"))
+        , command "structures" (info (RenderStructures <$> mapRenderOpts <*> subOpts <**> helper ) (progDesc "Format a file"))
+        ]
+    )
+    <|> RenderMap <$> mapRenderOpts <*> subOpts
  where
   sizeOpts =
     AreaDimensions
